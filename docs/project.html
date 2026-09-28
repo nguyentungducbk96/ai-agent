@@ -64,15 +64,56 @@
       </td></tr>
     </table></div>
 
-    <h2>4. Claude “nhìn thấy” gì trong một request</h2>
+    <h2 id="lifecycle">4. Vòng đời một phiên Claude Code</h2>
+    <p>Từ lúc gõ <code>claude</code> đến lúc thoát, Claude Code đi qua 4 giai đoạn:</p>
+    <ol>
+      <li><strong>Khởi động:</strong> nạp luật và kiến thức nền.</li>
+      <li><strong>Mỗi lượt:</strong> nạp thêm file khi cần, gọi tool.</li>
+      <li><strong>Khi context gần đầy:</strong> tóm tắt (compact) hội thoại.</li>
+      <li><strong>Kết thúc phiên.</strong></li>
+    </ol>
+    <div id="flow-lifecycle"></div>
+    <div class="legend"><span class="l-start">Bắt đầu</span><span class="l-step">Bước xử lý</span><span class="l-dec">Điểm rẽ nhánh</span><span class="l-end">Kết thúc</span><span class="l-loop">Vòng lặp</span></div>
+
+    <h3>Từng file: nạp khi nào, để làm gì, không có thì sao</h3>
+    <div class="table-wrap"><table>
+      <tr><th>#</th><th>File</th><th>Nạp khi nào</th><th>Dùng để làm gì</th><th>Nếu không có</th></tr>
+      <tr><td>1</td><td>Managed settings / policy của tổ chức</td><td>Khởi động, trước mọi thứ</td><td>Luật công ty mà không ai ghi đè được, ví dụ cấm MCP lạ hoặc cấm đọc secret</td><td>Chỉ còn luật của team và cá nhân. Không sao với dự án cá nhân, nhưng rủi ro với công ty lớn</td></tr>
+      <tr><td>2</td><td><code>~/.claude/settings.json</code></td><td>Khởi động</td><td>Sở thích và quyền cá nhân áp dụng cho mọi project</td><td>Dùng mặc định, nên Claude hỏi quyền nhiều hơn</td></tr>
+      <tr><td>3</td><td><code>.claude/settings.json</code></td><td>Khởi động</td><td><strong>Luật chung của team</strong>: allow lệnh test, deny đọc <code>.env</code>, đăng ký hooks</td><td>Mỗi người cấu hình một kiểu, không ai chặn đọc <code>.env</code>, hook không chạy</td></tr>
+      <tr><td>4</td><td><code>.claude/settings.local.json</code></td><td>Khởi động (ưu tiên cao hơn file 3)</td><td>Ghi đè cho riêng bạn, không commit</td><td>Không sao, file này là tuỳ chọn</td></tr>
+      <tr><td>5</td><td><code>~/.claude/CLAUDE.md</code></td><td>Khởi động</td><td>Thói quen cá nhân, ví dụ “trả lời tiếng Việt”, “dùng pnpm”</td><td>Claude không biết sở thích của bạn, bạn phải nhắc lại mỗi phiên</td></tr>
+      <tr><td>6</td><td><code>./CLAUDE.md</code> (và của các thư mục cha)</td><td>Khởi động, luôn nằm trong context</td><td><strong>Bộ nhớ dự án</strong>: lệnh build/test, cấu trúc, điều không hiển nhiên</td><td>Mỗi phiên Claude phải tự khám phá lại, tốn token, dễ chạy sai lệnh (ví dụ <code>npm test</code> thay vì <code>pnpm turbo test</code>)</td></tr>
+      <tr><td>7</td><td><code>CLAUDE.local.md</code></td><td>Khởi động, nối sau CLAUDE.md</td><td>Ghi chú riêng của bạn trong project</td><td>Không sao</td></tr>
+      <tr><td>8</td><td><code>.claude/rules/*.md</code> không có <code>paths</code></td><td>Khởi động</td><td>Quy tắc chung tách khỏi CLAUDE.md cho gọn</td><td>Quy tắc phải dồn vào CLAUDE.md</td></tr>
+      <tr><td>9</td><td><code>.mcp.json</code></td><td>Khởi động, hỏi duyệt lần đầu</td><td>Kết nối công cụ ngoài: DB, GitHub, Jira…</td><td>Claude không truy cập được hệ thống ngoài, bạn phải copy dữ liệu vào tay</td></tr>
+      <tr><td>10</td><td><code>.claude/skills/*/SKILL.md</code></td><td>Khởi động: chỉ nạp <code>name</code> + <code>description</code>. Toàn bộ nội dung: khi được dùng</td><td>Quy trình dùng lại được, ví dụ “thêm migration”, “thêm FAQ”</td><td>Mỗi lần bạn phải giải thích lại quy trình, kết quả mỗi lần một kiểu</td></tr>
+      <tr><td>11</td><td><code>.claude/agents/*.md</code></td><td>Khởi động nạp định nghĩa, chạy khi được giao việc</td><td>Chuyên gia có context riêng và tool giới hạn, ví dụ reviewer chỉ được đọc</td><td>Chỉ có các subagent có sẵn, không có reviewer bị giới hạn quyền</td></tr>
+      <tr><td>12</td><td>Hook <code>SessionStart</code></td><td>Cuối giai đoạn khởi động</td><td>Chèn trạng thái dự án, ví dụ nhánh git hoặc ticket đang làm</td><td>Claude bắt đầu mà không biết bối cảnh hiện tại</td></tr>
+      <tr><td>13</td><td>CLAUDE.md ở thư mục con (<code>apps/api/CLAUDE.md</code>)</td><td><strong>Khi cần</strong>: lúc Claude đọc file trong thư mục đó</td><td>Kiến thức riêng từng app: NestJS khác Next.js</td><td>Claude dùng quy ước chung, dễ lẫn cách viết giữa backend và frontend</td></tr>
+      <tr><td>14</td><td><code>.claude/rules/*.md</code> có <code>paths</code></td><td><strong>Khi cần</strong>: lúc đọc file khớp mẫu</td><td>Quy tắc theo loại file, chỉ tốn context khi liên quan</td><td>Quy tắc phải luôn nằm trong CLAUDE.md, tốn context mọi lúc</td></tr>
+      <tr><td>15</td><td><code>.claude/hooks/*</code> (PreToolUse, PostToolUse, Stop…)</td><td>Mỗi lần gọi tool / kết thúc lượt</td><td>Tự động hoá <strong>chắc chắn</strong>: chặn secret, format, chạy test</td><td>Chỉ còn dựa vào việc model nhớ chỉ dẫn, có lúc sẽ quên</td></tr>
+    </table></div>
+    <div class="callout tip"><strong>Quy tắc chọn chỗ đặt thông tin:</strong>
+      <ul>
+        <li>Luật bắt buộc → settings hoặc hook.</li>
+        <li>Kiến thức luôn cần → CLAUDE.md.</li>
+        <li>Kiến thức theo thư mục hoặc loại file → CLAUDE.md thư mục con hoặc rule có <code>paths</code>.</li>
+        <li>Quy trình thỉnh thoảng dùng → skill.</li>
+        <li>Việc cần context riêng → subagent.</li>
+        <li>Dữ liệu và hệ thống ngoài → MCP.</li>
+      </ul>
+    </div>
+
+    <h2>5. Claude “nhìn thấy” gì trong một request</h2>
     <p>Context được ghép theo thứ tự cố định. Phần trên ổn định nên được cache, phần dưới thay đổi mỗi lượt.</p>
     <figure class="flow" id="layers"></figure>
 
-    <h2>5. Một lượt xử lý trong Claude Code</h2>
+    <h2>6. Một lượt xử lý trong Claude Code</h2>
     <p>Ví dụ: bạn gõ “Sửa lỗi định dạng mã đơn trong tools.py”. Hook <code>PreToolUse</code> chạy <strong>trước</strong> bước kiểm tra permission.</p>
     <div id="flow-turn"></div>
 
-    <h2>6. Agent API trong <code>src/agent.py</code> chạy thế nào</h2>
+    <h2>7. Agent API trong <code>src/agent.py</code> chạy thế nào</h2>
     <p>Ví dụ: khách hỏi “Đơn SH1024 của tôi đang ở đâu?”.</p>
     <div id="flow-agent"></div>
     <div class="card example-card">
@@ -87,11 +128,11 @@
       <p class="muted" style="margin:0">Nếu khách gõ sai mã “1024”, tool ném <code>ToolError</code> kèm hướng dẫn định dạng → trả <code>is_error: true</code> → Claude tự hỏi lại khách mã đúng.</p>
     </div>
 
-    <h2>7. Cùng một tool, hai cách dùng</h2>
+    <h2>8. Cùng một tool, hai cách dùng</h2>
     <div id="flow-mcp"></div>
     <p><code>tools.py</code> là lõi. <code>agent.py</code> gửi schema của nó qua Messages API cho khách hàng. <code>orders_mcp.py</code> mở cùng các hàm đó qua MCP để nhân viên dùng trong Claude Code. Viết một lần, dùng hai nơi.</p>
 
-    <h2>8. Thử ngay với Claude Code</h2>
+    <h2>9. Thử ngay với Claude Code</h2>
     <div class="table-wrap"><table>
       <tr><th>Bạn gõ</th><th>Điều xảy ra</th><th>Học được</th></tr>
       <tr><td>“Tra đơn SH1025”</td><td>Gọi tool <code>mcp__orders__lookup_order</code>, được allow sẵn nên không hỏi</td><td>MCP + permission allow</td></tr>

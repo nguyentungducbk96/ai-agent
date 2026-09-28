@@ -476,3 +476,21 @@ th { background: var(--surface-2); font-weight: 600; }
 .legend .l-loop::before { border: none; border-top: 2px solid var(--accent); height: 0; width: 16px; border-radius: 0; }
 .tree a { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--border-strong); }
 .tree a:hover { color: var(--accent); }
+
+/* ---------- Question bank ---------- */
+.bank-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.bank-levels { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.chip.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.bank-stats { font-size: 14px; color: var(--muted); }
+.bank-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.quiz-q .q pre { margin: 8px 0; font-weight: 400; }

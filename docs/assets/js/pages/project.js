@@ -82,6 +82,23 @@
     ]
   });
 
+  put('flow-lifecycle', {
+    title: 'Vòng đời: khởi động một lần, lặp mỗi lượt, compact khi đầy',
+    steps: [
+      { kind: 'start', label: 'Gõ claude', note: 'Giai đoạn 1: khởi động' },
+      { kind: 'step', label: 'Gộp settings (luật)', detail: 'managed › local › project › user', note: 'Quyết định được làm gì, bị chặn gì' },
+      { kind: 'step', label: 'Nạp CLAUDE.md + rules', detail: 'user → project → CLAUDE.local.md', note: 'Kiến thức nền, luôn nằm trong context' },
+      { kind: 'step', label: 'Kết nối MCP (.mcp.json)', note: 'Thêm tool: DB, GitHub, Jira…' },
+      { kind: 'step', label: 'Mô tả skill + subagent', detail: 'chỉ name + description', note: 'Như đọc menu, chưa nấu món' },
+      { kind: 'step', label: 'Hook SessionStart', note: 'Chèn bối cảnh: nhánh git, ticket' },
+      { kind: 'step', label: 'Bạn gửi prompt', detail: 'hook UserPromptSubmit', note: 'Giai đoạn 2: mỗi lượt' },
+      { kind: 'step', label: 'Model đọc file, gọi tool', detail: 'PreToolUse → permission → PostToolUse', note: 'Nạp thêm: CLAUDE.md con, rule paths, SKILL.md' },
+      { kind: 'decision', label: 'Context gần đầy?', note: 'Có → PreCompact → tóm tắt → PostCompact' },
+      { kind: 'step', label: 'Trả lời, hook Stop', loopTo: 6, loopLabel: 'lượt mới' },
+      { kind: 'end', label: 'Thoát: hook SessionEnd', note: 'Giai đoạn 4: kết thúc phiên' }
+    ]
+  });
+
   put('flow-turn', {
     title: 'Một lượt: hook chặn trước, permission hỏi sau',
     steps: [
