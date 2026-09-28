@@ -9,7 +9,7 @@ Trang học **lộ trình 6 tháng đạt chứng chỉ Claude Certified Archite
 | Trang | Chức năng |
 | --- | --- |
 | `docs/index.html` | Tổng quan lộ trình, tiến độ học, thông tin kỳ thi |
-| `docs/lesson.html` | 31 bài học (24 bài chính và 7 bài bổ sung): lý thuyết, code mẫu, 120 bài tập có hướng dẫn giải từng bước, 186 câu quiz có giải thích |
+| `docs/lesson.html` | 37 bài học (6 tháng + chuyên đề Claude cho Fullstack): lý thuyết, sơ đồ, ví dụ thực tế, bài tập có hướng dẫn giải, quiz, **ngân hàng 100 câu mỗi bài** (3.700 câu, độ khó tăng dần) và **111 bài thực hành** NestJS / Next.js / AWS / GitHub Actions |
 | `docs/project.html` | Project mẫu `shop-support-agent`: cấu trúc thư mục, Claude nạp file nào trước, vòng xử lý của Claude Code và agent API, kèm sơ đồ và mẹo nhớ |
 | `docs/sample-project/` | Mã nguồn project mẫu (CLAUDE.md, .claude/, .mcp.json, agent, MCP server, eval, test) |
 | `docs/exam.html` | Cách đăng ký thi, cấu trúc đề, chiến lược làm bài, ngân hàng 91 câu: luyện nhanh, đề đầy đủ 60 câu/120 phút, luyện theo domain |
@@ -36,7 +36,9 @@ docs/
         ├── app.js            # tiện ích dùng chung: header, lưu tiến độ, code block, quiz
         ├── exam-data.js      # ngân hàng câu hỏi thi thử
         ├── exam/extra-m*.js  # câu hỏi thi thử bổ sung theo tháng
-        ├── data/month1..6.js # nội dung bài học
+        ├── data/month1..7.js # nội dung bài học
+        ├── data/qbank/*.js   # 100 câu mỗi bài, tải khi mở bài
+        ├── data/labs/*.js    # bài thực hành fullstack, tải khi mở bài
         └── pages/*.js        # script riêng của từng trang
 ```
 
