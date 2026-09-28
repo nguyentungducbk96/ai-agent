@@ -9,8 +9,8 @@ Trang học **lộ trình 6 tháng đạt chứng chỉ Claude Certified Archite
 | Trang | Chức năng |
 | --- | --- |
 | `docs/index.html` | Tổng quan lộ trình, tiến độ học, thông tin kỳ thi |
-| `docs/lesson.html` | 24 bài học (6 tháng × 4 tuần): lý thuyết, code mẫu, bài tập kèm gợi ý và lời giải, quiz |
-| `docs/exam.html` | Cách đăng ký thi, cấu trúc đề, chiến lược làm bài, đề thi thử có bấm giờ và chấm điểm theo domain |
+| `docs/lesson.html` | 31 bài học (24 bài chính và 7 bài bổ sung): lý thuyết, code mẫu, 120 bài tập có hướng dẫn giải từng bước, 186 câu quiz có giải thích |
+| `docs/exam.html` | Cách đăng ký thi, cấu trúc đề, chiến lược làm bài, ngân hàng 91 câu: luyện nhanh, đề đầy đủ 60 câu/120 phút, luyện theo domain |
 
 Tiến độ (bài đã học, bài tập, lịch sử thi thử) được lưu trong `localStorage` của trình duyệt.
 
@@ -33,6 +33,7 @@ docs/
     └── js/
         ├── app.js            # tiện ích dùng chung: header, lưu tiến độ, code block, quiz
         ├── exam-data.js      # ngân hàng câu hỏi thi thử
+        ├── exam/extra-m*.js  # câu hỏi thi thử bổ sung theo tháng
         ├── data/month1..6.js # nội dung bài học
         └── pages/*.js        # script riêng của từng trang
 ```

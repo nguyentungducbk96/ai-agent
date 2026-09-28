@@ -7,8 +7,13 @@
   let timerId = null;
   let deadline = 0;
 
+  const FULL = Math.min(60, bank.length);
   document.getElementById('full-desc').textContent =
-    `${bank.length} câu, bấm giờ ${bank.length * 2} phút (2 phút/câu)`;
+    `${FULL} câu ngẫu nhiên, bấm giờ ${FULL * 2} phút – giống đề thật`;
+  const domains = [...new Set(bank.map((q) => q.domain))].sort();
+  document.getElementById('domain-select').innerHTML = domains.map((d) =>
+    `<option value="${d}">${d} (${bank.filter((q) => q.domain === d).length} câu)</option>`).join('');
+  document.getElementById('bank-size').textContent = `Ngân hàng hiện có ${bank.length} câu hỏi.`;
 
   function shuffle(arr) {
     const a = arr.slice();
@@ -32,7 +37,14 @@
 
   function start() {
     const mode = document.querySelector('input[name="mode"]:checked').value;
-    questions = (mode === 'quick' ? shuffle(bank).slice(0, 15) : shuffle(bank)).map(App.shuffleOptions);
+    let pool;
+    if (mode === 'quick') pool = shuffle(bank).slice(0, 15);
+    else if (mode === 'full') pool = shuffle(bank).slice(0, FULL);
+    else {
+      const d = document.getElementById('domain-select').value;
+      pool = shuffle(bank.filter((q) => q.domain === d));
+    }
+    questions = pool.map(App.shuffleOptions);
     const wrap = document.getElementById('exam-questions');
     wrap.innerHTML = '';
     questions.forEach((item, i) => {

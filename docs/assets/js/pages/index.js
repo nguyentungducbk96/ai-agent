@@ -35,7 +35,7 @@
       <div class="muted" style="font-size:14px">${m.domain}</div>
       <p style="margin:8px 0 0;font-size:15px">${m.goal}</p>
       <ul>${items.map((l) => `<li class="${state.done[l.id] ? 'done' : ''}">
-        <a href="lesson.html?id=${l.id}">Tuần ${l.week}: ${l.title}</a></li>`).join('')}</ul>
+        <a href="lesson.html?id=${l.id}">${l.bonus ? 'Bổ sung' : `Tuần ${l.week}`}: ${l.title}</a></li>`).join('')}</ul>
       <div class="progress"><span style="width:${items.length ? (done / items.length) * 100 : 0}%"></span></div>`;
     wrap.appendChild(card);
   });

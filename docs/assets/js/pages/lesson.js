@@ -16,7 +16,7 @@
     d.innerHTML = `<summary>Tháng ${m.month}: ${m.title}</summary><ol>${
       all.filter((l) => l.month === m.month).map((l) =>
         `<li class="${state.done[l.id] ? 'done' : ''}"><a href="lesson.html?id=${l.id}" class="${l.id === current.id ? 'active' : ''}">
-          T${l.week}. ${l.title}</a></li>`).join('')}</ol>`;
+          ${l.bonus ? 'BS' : `T${l.week}`}. ${l.title}</a></li>`).join('')}</ol>`;
     sidebar.appendChild(d);
   });
   document.getElementById('toggle-sidebar').addEventListener('click', () => sidebar.classList.toggle('collapsed'));
@@ -26,7 +26,7 @@
   const root = document.getElementById('lesson');
   root.innerHTML = `
     <div class="lesson-meta">
-      <span class="tag accent">Tháng ${current.month} · Tuần ${current.week}</span>
+      <span class="tag accent">Tháng ${current.month} · ${current.bonus ? 'Bài bổ sung' : `Tuần ${current.week}`}</span>
       <span class="tag">${current.domain}</span>
       <span class="tag">⏱ ${current.duration}</span>
     </div>

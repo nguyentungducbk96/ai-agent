@@ -77,9 +77,15 @@
         </label>
         <label class="card" style="cursor:pointer">
           <input type="radio" name="mode" value="full"> <strong>Đề đầy đủ</strong><br>
-          <span class="muted" id="full-desc">Toàn bộ câu hỏi, bấm giờ 2 phút/câu</span>
+          <span class="muted" id="full-desc">60 câu ngẫu nhiên, 120 phút – giống đề thật</span>
+        </label>
+        <label class="card" style="cursor:pointer">
+          <input type="radio" name="mode" value="domain"> <strong>Luyện theo domain</strong><br>
+          <span class="muted">Toàn bộ câu của một domain, không bấm giờ</span><br>
+          <select id="domain-select" style="margin-top:8px;font:inherit;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text)"></select>
         </label>
       </div>
+      <p class="muted" id="bank-size" style="font-size:14px;margin-bottom:0"></p>
       <p><button class="btn" type="button" id="start-btn">Bắt đầu</button></p>
     </div>
 
@@ -102,6 +108,12 @@
 
   <script src="assets/js/app.js"></script>
   <script src="assets/js/exam-data.js"></script>
+  <script src="assets/js/exam/extra-m1.js"></script>
+  <script src="assets/js/exam/extra-m2.js"></script>
+  <script src="assets/js/exam/extra-m3.js"></script>
+  <script src="assets/js/exam/extra-m4.js"></script>
+  <script src="assets/js/exam/extra-m5.js"></script>
+  <script src="assets/js/exam/extra-m6.js"></script>
   <script src="assets/js/pages/exam.js"></script>
 </body>
 </html>
