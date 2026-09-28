@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "orders": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["src/orders_mcp.py"],
+      "env": { "ORDERS_FILE": "${ORDERS_FILE:-data/orders.json}" }
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}" }
+    }
+  }
+}

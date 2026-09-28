@@ -5,6 +5,7 @@
   --text: #1f1e1b;
   --muted: #5f5c55;
   --border: #e3e1d9;
+  --border-strong: #b9b5aa;
   --accent: #c2410c;
   --accent-soft: #fdeee6;
   --good: #15803d;
@@ -26,6 +27,7 @@
     --text: #efede6;
     --muted: #a8a49a;
     --border: #3a3833;
+    --border-strong: #5c5850;
     --accent: #fb923c;
     --accent-soft: #3a2415;
     --good: #4ade80;
@@ -43,6 +45,7 @@
   --text: #efede6;
   --muted: #a8a49a;
   --border: #3a3833;
+  --border-strong: #5c5850;
   --accent: #fb923c;
   --accent-soft: #3a2415;
   --good: #4ade80;
@@ -425,3 +428,51 @@ th { background: var(--surface-2); font-weight: 600; }
   .sidebar.collapsed { display: none; }
 }
 .sidebar-toggle { display: none; margin-bottom: 12px; }
+
+/* ---------- Flow diagrams, examples, recap ---------- */
+.flow {
+  margin: 16px 0 24px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.flow-svg { display: block; width: 100%; min-width: 560px; height: auto; }
+.example-card { margin: 14px 0; }
+.example-card h3 { margin: 0 0 6px; font-size: 17px; }
+.example-card .tag { margin-bottom: 6px; }
+.recap {
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  background: var(--surface);
+  margin: 24px 0;
+}
+.recap h2 { margin-top: 0; }
+.recap .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.recap h3 { margin: 4px 0 8px; font-size: 16px; }
+.recap ul { margin: 0; padding-left: 20px; }
+.recap .tips li::marker { content: "💡 "; }
+.tree {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  overflow-x: auto;
+  white-space: pre;
+}
+.tree .c { color: var(--muted); }
+.tree .d { color: var(--accent); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1.5px solid var(--border-strong); }
+.legend .l-start::before { background: var(--accent-soft); border-color: var(--accent); border-radius: 6px; }
+.legend .l-step::before { background: var(--surface); }
+.legend .l-dec::before { background: var(--surface-2); border-color: var(--accent); border-style: dashed; }
+.legend .l-end::before { background: var(--good-soft); border-color: var(--good); border-radius: 6px; }
+.legend .l-loop::before { border: none; border-top: 2px solid var(--accent); height: 0; width: 16px; border-radius: 0; }
+.tree a { color: var(--text); text-decoration: none; border-bottom: 1px dotted var(--border-strong); }
+.tree a:hover { color: var(--accent); }

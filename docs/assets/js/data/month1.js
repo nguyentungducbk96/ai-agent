@@ -19,6 +19,73 @@ window.LESSONS.push(
       'Hiểu token, context window, giới hạn output và cách tính chi phí',
       'Biết các bề mặt sử dụng Claude: claude.ai, Claude Code, Claude API, nền tảng cloud'
     ],
+    flow: {
+      "title": "Mỗi request gửi lại toàn bộ context; token quyết định chi phí",
+      "steps": [
+        {
+          "kind": "start",
+          "label": "Code gửi request",
+          "detail": "model, max_tokens, system, messages"
+        },
+        {
+          "kind": "step",
+          "label": "Đếm token input",
+          "detail": "system + lịch sử + tài liệu + tool",
+          "note": "Vượt context window → lỗi 400"
+        },
+        {
+          "kind": "step",
+          "label": "Model đọc toàn bộ context",
+          "note": "API stateless: không nhớ lượt trước"
+        },
+        {
+          "kind": "step",
+          "label": "Sinh output từng token",
+          "detail": "tối đa max_tokens token"
+        },
+        {
+          "kind": "decision",
+          "label": "Chạm max_tokens khi chưa xong?",
+          "note": "Có → stop_reason = max_tokens"
+        },
+        {
+          "kind": "step",
+          "label": "Trả content + stop_reason",
+          "detail": "kèm usage: input/output tokens"
+        },
+        {
+          "kind": "end",
+          "label": "Tính chi phí từ usage",
+          "note": "in × giá input + out × giá output"
+        }
+      ]
+    },
+    realExamples: [
+      {
+        "title": "Shop mỹ phẩm online: một model cho mọi việc là lãng phí",
+        "html": "<p>Một shop mỹ phẩm bán qua website và sàn TMĐT nhận khoảng <strong>50.000 đánh giá mỗi ngày</strong>. Đội kỹ thuật dùng model mạnh nhất để vừa phân loại đánh giá (khen, chê giao hàng, chê sản phẩm…), vừa soạn trả lời cho khiếu nại. Cuối tháng, hoá đơn API cao gấp nhiều lần dự tính.</p>\n<p><strong>Cách làm lại:</strong> họ log <code>usage</code> của từng loại việc và thấy 90% token nằm ở việc phân loại – một bài toán đơn giản. Sau khi chạy eval 300 đánh giá có nhãn tay, họ chuyển phân loại sang Haiku (đạt ngưỡng chính xác đặt ra), còn khiếu nại phức tạp vẫn dùng Opus. Việc phân loại hàng loạt ban đêm chuyển sang Batch API để giảm thêm 50%.</p>\n<p><strong>Bài học:</strong> chọn model theo từng việc, dựa trên số đo, không theo cảm giác “model mạnh cho chắc”.</p>"
+      },
+      {
+        "title": "Chatbot ngân hàng “quên” khách vừa nói gì",
+        "html": "<p>Một ngân hàng thử nghiệm chatbot tư vấn thẻ tín dụng. Khách nói “Tôi lương 15 triệu”, câu sau hỏi “Vậy tôi mở được thẻ nào?” thì bot hỏi lại mức lương. Lập trình viên tưởng API tự nhớ hội thoại, nên mỗi lần chỉ gửi câu hỏi mới nhất.</p>\n<p><strong>Nguyên nhân:</strong> Messages API là <strong>stateless</strong>. Server không lưu gì giữa hai request.</p>\n<p><strong>Cách sửa:</strong> lưu lịch sử phía ứng dụng và gửi lại toàn bộ mỗi lượt:</p>\n<pre><code>history.append({\"role\": \"user\", \"content\": question})\nr = client.messages.create(model=\"claude-opus-5\", max_tokens=2048,\n                           system=SYSTEM, messages=history)\nhistory.append({\"role\": \"assistant\", \"content\": r.content})</code></pre>\n<p>Kèm theo, nhóm đặt giới hạn độ dài lịch sử và theo dõi <code>input_tokens</code> tăng dần theo số lượt – vì gửi lại lịch sử nghĩa là mỗi lượt sau tốn nhiều token input hơn lượt trước.</p>"
+      }
+    ],
+    recap: {
+      "summary": [
+        "Opus mạnh nhất, Sonnet cân bằng, Haiku nhanh và rẻ nhất – chọn theo độ khó, khối lượng và độ trễ.",
+        "Mọi thứ đi qua <code>POST /v1/messages</code>; API không nhớ hội thoại, client phải gửi lại lịch sử.",
+        "Context window gồm system + lịch sử + tài liệu + định nghĩa tool + output.",
+        "<code>max_tokens</code> chỉ giới hạn output; chạm giới hạn thì <code>stop_reason = \"max_tokens\"</code>.",
+        "Luôn log <code>usage</code> để biết chi phí thật, output thường đắt hơn input nhiều lần."
+      ],
+      "tips": [
+        "<strong>Ô tô tải – xe con – xe máy</strong> = Opus – Sonnet – Haiku: chở việc nặng, việc thường, việc nhanh.",
+        "<strong>“Gửi gì biết nấy”</strong>: API không có trí nhớ, thiếu lịch sử là Claude không biết.",
+        "<strong>Mạnh trước – đo – rẻ dần</strong>: chứng minh làm được bằng model mạnh, rồi mới thử model rẻ bằng eval.",
+        "Bẫy đề thi: output bị cắt → tăng <code>max_tokens</code>/dùng streaming, không phải đổi model hay bật caching.",
+        "Model ID là chuỗi chính xác (<code>claude-opus-5</code>), không tự thêm ngày tháng vào đuôi."
+      ]
+    },
     sections: [
       {
         h: '1. Claude là gì và dùng ở đâu',
@@ -263,6 +330,83 @@ print(r.stop_reason, r.usage.output_tokens)</code></pre></li>
       'Dùng system prompt để đặt vai trò và quy tắc',
       'Cung cấp ngữ cảnh và lý do (why) để Claude tự suy ra hành vi đúng'
     ],
+    flow: {
+      "title": "Prompt tốt = vai trò + nhiệm vụ + ngữ cảnh + tiêu chí + lý do",
+      "steps": [
+        {
+          "kind": "start",
+          "label": "Xác định nhiệm vụ",
+          "detail": "động từ cụ thể: tóm tắt, phân loại…"
+        },
+        {
+          "kind": "step",
+          "label": "Viết system prompt",
+          "detail": "vai trò, phạm vi, quy tắc ổn định",
+          "note": "Giữ cố định để tận dụng prompt caching"
+        },
+        {
+          "kind": "step",
+          "label": "Thêm ngữ cảnh và lý do",
+          "detail": "người đọc là ai, kết quả dùng vào đâu"
+        },
+        {
+          "kind": "step",
+          "label": "Nêu tiêu chí hoàn thành",
+          "detail": "độ dài, định dạng, giọng văn"
+        },
+        {
+          "kind": "step",
+          "label": "Đặt dữ liệu trong messages",
+          "note": "Tài liệu dài đặt trước câu hỏi"
+        },
+        {
+          "kind": "step",
+          "label": "Chạy thử với input thật"
+        },
+        {
+          "kind": "decision",
+          "label": "Kết quả đạt tiêu chí?",
+          "note": "Có → chốt; Không → sửa chỉ dẫn"
+        },
+        {
+          "kind": "step",
+          "label": "Sửa chỗ mơ hồ",
+          "detail": "nói điều cần làm, bổ sung lý do",
+          "loopTo": 2,
+          "loopLabel": "thử lại"
+        },
+        {
+          "kind": "end",
+          "label": "Chốt phiên bản prompt"
+        }
+      ]
+    },
+    realExamples: [
+      {
+        "title": "Lễ tân ảo của phòng khám: từ trả lời lan man đến ngắn, an toàn",
+        "html": "<p>Một phòng khám tư ở TP.HCM dùng Claude trả lời tin nhắn Zalo về lịch khám. Prompt ban đầu chỉ có: “Trả lời câu hỏi của bệnh nhân.” Kết quả: câu trả lời dài 10–15 dòng, có lúc còn gợi ý thuốc – điều phòng khám không muốn.</p>\n<p><strong>Prompt sau khi sửa</strong> có vai trò, lý do và tiêu chí rõ ràng:</p>\n<pre><code>Bạn là lễ tân của Phòng khám An Tâm. Bệnh nhân đọc trên điện thoại,\nnên trả lời tối đa 4 câu. Không đưa lời khuyên dùng thuốc hay chẩn đoán,\nvì chỉ bác sĩ được làm việc đó sau khi khám; thay vào đó hãy mời\nbệnh nhân đặt lịch hoặc gọi hotline 1900 xxxx.</code></pre>\n<p>Chỉ với việc giải thích <em>vì sao</em> không tư vấn thuốc, Claude tự xử lý đúng cả những câu nhóm chưa lường trước (“uống thuốc này có sao không?”, “con tôi sốt thì làm gì?”) – trả lời ngắn, lịch sự và chuyển sang đặt lịch.</p>"
+      },
+      {
+        "title": "Team dev: “review code này” và cái giá của sự mơ hồ",
+        "html": "<p>Một team 8 người ở công ty outsource dùng Claude review pull request. Prompt “Review code này” cho ra nhận xét chung chung: “Code khá tốt, nên thêm comment”. Lỗi SQL injection trong PR vẫn lọt lên staging.</p>\n<p><strong>Sau khi sửa:</strong> system prompt đặt vai trò “kỹ sư bảo mật ứng dụng web review code Python cho hệ thống thanh toán”, tiêu chí “liệt kê theo 3 mức Nghiêm trọng / Nên sửa / Gợi ý, mỗi mục có file:dòng và cách sửa”, và lý do “kết quả được dán thẳng vào PR để dev sửa ngay”.</p>\n<p>Kết quả: nhận xét cụ thể, có vị trí, dev sửa được ngay; lỗi bảo mật được chỉ ra ở mục Nghiêm trọng. Team lưu prompt này vào repo để ai cũng dùng cùng một phiên bản.</p>"
+      }
+    ],
+    recap: {
+      "summary": [
+        "Coi Claude như đồng nghiệp giỏi nhưng chưa biết gì về dự án: nói rõ nhiệm vụ, người đọc, mục đích.",
+        "System prompt chứa vai trò và quy tắc ổn định; dữ liệu thay đổi mỗi lượt đặt trong messages.",
+        "Giải thích lý do của quy tắc giúp Claude xử lý đúng cả trường hợp không liệt kê.",
+        "Viết điều cần làm, đo được (“tối đa 3 câu”) thay vì lời cấm mơ hồ hay viết HOA.",
+        "Tài liệu dài đặt trước, câu hỏi và chỉ dẫn đặt ở cuối, bọc dữ liệu trong thẻ."
+      ],
+      "tips": [
+        "Công thức <strong>V-N-N-T-L</strong>: Vai trò – Nhiệm vụ – Ngữ cảnh – Tiêu chí – Lý do.",
+        "<strong>“Nói làm gì, đừng chỉ nói đừng làm gì”</strong>.",
+        "Thử <strong>“bài test đồng nghiệp mới”</strong>: đưa prompt cho một người không biết dự án, họ có làm đúng không?",
+        "Bẫy đề thi: timestamp hay dữ liệu thay đổi mà đặt trong system prompt là sai – vừa lẫn vai trò, vừa phá cache.",
+        "Viết HOA, “CRITICAL” dày đặc dễ làm model mới phản ứng thái quá – dùng lý do thay cho âm lượng."
+      ]
+    },
     sections: [
       {
         h: '1. Nguyên tắc “đồng nghiệp mới giỏi nhưng chưa biết gì”',
@@ -460,6 +604,76 @@ Không yêu cầu nhân viên gửi mật khẩu trong bất kỳ trường hợ
       'Dùng XML tag để cấu trúc prompt và tách dữ liệu',
       'Hiểu adaptive thinking và tham số effort'
     ],
+    flow: {
+      "title": "Ví dụ định hình output, XML tách dữ liệu, thinking cho bài khó",
+      "steps": [
+        {
+          "kind": "start",
+          "label": "Nhận input cần xử lý"
+        },
+        {
+          "kind": "step",
+          "label": "Bọc chỉ dẫn bằng thẻ XML",
+          "detail": "<instructions>, <document>, <examples>"
+        },
+        {
+          "kind": "step",
+          "label": "Thêm 3–5 ví dụ đa dạng",
+          "detail": "mỗi ví dụ trong thẻ <example>",
+          "note": "Ví dụ trái quy tắc → Claude theo ví dụ"
+        },
+        {
+          "kind": "decision",
+          "label": "Bài toán nhiều bước?",
+          "note": "Có → bật adaptive thinking"
+        },
+        {
+          "kind": "step",
+          "label": "Chọn mức effort",
+          "detail": "low · medium · high · xhigh · max"
+        },
+        {
+          "kind": "step",
+          "label": "Claude suy nghĩ rồi trả lời",
+          "detail": "khối thinking + khối text"
+        },
+        {
+          "kind": "step",
+          "label": "Code tách thẻ kết quả",
+          "detail": "regex trên <label>…</label>"
+        },
+        {
+          "kind": "end",
+          "label": "Kết quả ổn định, dễ xử lý"
+        }
+      ]
+    },
+    realExamples: [
+      {
+        "title": "Sàn TMĐT: 5 ví dụ “khó” đáng giá hơn 50 dòng quy tắc",
+        "html": "<p>Một sàn thương mại điện tử phân loại phản hồi của người bán vào 6 nhóm. Prompt chỉ có mô tả nhóm cho kết quả tốt với câu rõ ràng nhưng hay sai với câu mơ hồ như “Hàng về rồi mà khách không nhận, tiền ship ai chịu?” (vừa giao hàng vừa thanh toán).</p>\n<p>Nhóm thêm 5 ví dụ trong <code>&lt;examples&gt;</code>, trong đó 2 ví dụ là đúng những câu mơ hồ kiểu này kèm nhãn chuẩn theo quy định nội bộ. Trên bộ test 200 câu có nhãn tay, số câu sai giảm rõ rệt, nhất là nhóm câu mơ hồ (số liệu minh hoạ – hãy tự đo trên dữ liệu của bạn).</p>\n<p><strong>Điều bất ngờ:</strong> khi một ví dụ bị gán nhãn sai, Claude sai theo ở các câu tương tự. Từ đó nhóm review ví dụ kỹ như review code.</p>"
+      },
+      {
+        "title": "Công ty tài chính: không phải câu nào cũng cần “nghĩ sâu”",
+        "html": "<p>Một công ty tài chính tiêu dùng có trợ lý nội bộ trả lời cả câu đơn giản (“hạn nộp hồ sơ là ngày nào?”) lẫn câu nhiều bước (“khách vay 50 triệu, 24 tháng, trả trước 10 triệu thì mỗi tháng trả bao nhiêu theo biểu lãi A?”).</p>\n<p>Ban đầu mọi câu chạy <code>effort: \"max\"</code> nên chậm và tốn token. Nhóm tách hai luồng: câu hỏi FAQ chạy <code>effort: \"low\"</code>; câu tính toán bật <code>thinking: {\"type\": \"adaptive\"}</code> với <code>effort: \"high\"</code> và yêu cầu kết quả trong thẻ <code>&lt;answer&gt;</code> để code đọc ra.</p>\n<pre><code>output_config={\"effort\": \"high\"},\nthinking={\"type\": \"adaptive\", \"display\": \"summarized\"}</code></pre>\n<p>Kết quả: câu FAQ nhanh hơn hẳn, câu tính toán vẫn chính xác, và nhân viên xem được bản tóm tắt suy nghĩ để kiểm tra lại cách tính.</p>"
+      }
+    ],
+    recap: {
+      "summary": [
+        "Few-shot là cách mạnh nhất để định hình định dạng: 3–5 ví dụ đa dạng, có cả trường hợp biên.",
+        "Ví dụ phải khớp quy tắc; nếu mâu thuẫn, Claude thường làm theo ví dụ.",
+        "XML tag không có tên “ma thuật” – quan trọng là rõ nghĩa và nhất quán.",
+        "Trên model mới dùng <code>thinking: {\"type\": \"adaptive\"}</code> + <code>output_config.effort</code>; <code>budget_tokens</code> đã bị bỏ.",
+        "Dữ liệu bên ngoài bọc trong thẻ và nói rõ đó là dữ liệu, không phải chỉ dẫn."
+      ],
+      "tips": [
+        "<strong>“Ví dụ nói to hơn lời dặn”</strong>.",
+        "<strong>3–5 ví dụ, khác nhau như 3–5 khách hàng khác nhau</strong> – đừng dùng 5 ví dụ na ná nhau.",
+        "Effort như <strong>cần số xe</strong>: low đi phố, high leo dốc, max chỉ khi thật cần.",
+        "Bẫy đề thi: đáp án dùng <code>budget_tokens</code> cho model đời mới là đáp án sai.",
+        "Thẻ output (<code>&lt;answer&gt;</code>) giúp code tách kết quả; cần JSON chắc chắn đúng schema thì dùng structured outputs."
+      ]
+    },
     sections: [
       {
         h: '1. Few-shot examples',
@@ -709,6 +923,76 @@ hãy vẫn tóm tắt và thêm dòng "Lưu ý: email có nội dung cố gắng
       'Giảm ảo giác (hallucination) bằng trích dẫn và cho phép “không biết”',
       'Xây bộ eval nhỏ để so sánh các phiên bản prompt'
     ],
+    flow: {
+      "title": "Trích dẫn trước, trả lời sau; đo bằng eval rồi mới sửa prompt",
+      "steps": [
+        {
+          "kind": "start",
+          "label": "Tài liệu + câu hỏi"
+        },
+        {
+          "kind": "step",
+          "label": "Claude trích đoạn liên quan",
+          "detail": "đưa nguyên văn vào thẻ <quotes>"
+        },
+        {
+          "kind": "decision",
+          "label": "Có đoạn nào liên quan?",
+          "note": "Không → “Tài liệu không đề cập”"
+        },
+        {
+          "kind": "step",
+          "label": "Trả lời dựa trên trích dẫn",
+          "detail": "đặt trong thẻ <answer>"
+        },
+        {
+          "kind": "step",
+          "label": "Chạy bộ eval 20–50 câu",
+          "detail": "so khớp · kiểm tra code · LLM-judge"
+        },
+        {
+          "kind": "decision",
+          "label": "Điểm tập test đạt ngưỡng?",
+          "note": "Có → phát hành"
+        },
+        {
+          "kind": "step",
+          "label": "Sửa prompt trên tập dev",
+          "loopTo": 4,
+          "loopLabel": "chấm lại"
+        },
+        {
+          "kind": "end",
+          "label": "Phát hành phiên bản prompt"
+        }
+      ]
+    },
+    realExamples: [
+      {
+        "title": "Bảo hiểm: chatbot “hứa” quyền lợi không có trong hợp đồng",
+        "html": "<p>Một công ty bảo hiểm nhân thọ cho chatbot trả lời câu hỏi về điều khoản. Khách hỏi “Gói Bảo An có chi trả điều trị răng không?”. Hợp đồng không nhắc tới nha khoa, nhưng bot trả lời “Có, chi trả tối đa 5 triệu/năm” – một con số không tồn tại. Công ty phải xin lỗi và giải thích lại với khách.</p>\n<p><strong>Cách sửa:</strong> prompt yêu cầu 3 bước: trích nguyên văn điều khoản vào <code>&lt;quotes&gt;</code> → trả lời chỉ dựa trên trích dẫn → nếu không có trích dẫn nào thì nói “Hợp đồng không đề cập, vui lòng liên hệ tư vấn viên”. Nhóm cũng giải thích lý do trong prompt: “thông tin sai có thể khiến khách ra quyết định tài chính sai”.</p>\n<p>Trên bộ 30 câu hỏi bẫy (hỏi thứ hợp đồng không có), bot chuyển từ thường xuyên bịa sang trả lời “không đề cập” gần như mọi lần.</p>"
+      },
+      {
+        "title": "Startup edtech: sửa prompt theo cảm tính làm hỏng chỗ khác",
+        "html": "<p>Một startup giáo dục dùng Claude chấm bài luận tiếng Anh. Mỗi khi giáo viên phàn nàn một bài, dev sửa prompt cho bài đó – rồi các bài khác lại bị chấm lệch. Sau 3 tuần, không ai biết phiên bản nào tốt nhất.</p>\n<p><strong>Cách làm lại:</strong> nhóm xây eval gồm 40 bài đã được 2 giáo viên chấm (tập dev 25 bài, tập test 15 bài). Mỗi thay đổi prompt chạy lại cả bộ; điểm lệch được đo bằng code, nhận xét được chấm bằng LLM-judge theo rubric.</p>\n<pre><code>prompt_version, dev_mae, test_mae\nv1, 1.4, 1.5\nv2, 0.9, 1.0   ← phát hành\nv3, 0.7, 1.3   ← “học thuộc” tập dev, loại</code></pre>\n<p>Nhờ tách dev/test, nhóm phát hiện v3 chỉ tốt trên tập dev nên không phát hành.</p>"
+      }
+    ],
+    recap: {
+      "summary": [
+        "Model 4.6+ không hỗ trợ prefill; cần JSON đúng schema thì dùng <code>output_config.format</code>.",
+        "Giảm ảo giác: cho phép “không biết”, trích dẫn trước rồi trả lời, dùng Citations API khi cần vị trí chính xác.",
+        "Eval tối thiểu = tập test có đáp án + cách chấm + chạy lại sau mỗi thay đổi.",
+        "Ba cách chấm: so khớp chính xác, kiểm tra bằng code, LLM-as-judge với rubric rõ.",
+        "Tinh chỉnh trên tập dev, chỉ báo cáo trên tập test."
+      ],
+      "tips": [
+        "<strong>“Trích trước – trả sau – không có thì nói không”</strong>.",
+        "<strong>Không đo = đoán</strong>: mọi thay đổi prompt phải có con số eval đi kèm.",
+        "Dev/test giống <strong>đề ôn và đề thi</strong>: luyện đề ôn, chấm điểm bằng đề thi.",
+        "Bẫy đề thi: “prefill dấu {” hoặc “viết HOA CHỈ TRẢ JSON” là đáp án sai trên model đời mới.",
+        "Câu hỏi bẫy (hỏi thứ tài liệu không có) là phần bắt buộc của bộ eval chống ảo giác."
+      ]
+    },
     sections: [
       {
         h: '1. Điều khiển định dạng',
@@ -943,6 +1227,73 @@ dev, test = ALL_QUESTIONS[:25], ALL_QUESTIONS[25:]</code></pre></li>
       'Tổ chức prompt với nhiều tài liệu dài để Claude trả lời chính xác',
       'Quản lý phiên bản prompt như quản lý code'
     ],
+    flow: {
+      "title": "Phần cố định trước, phần biến đổi sau; mỗi phiên bản có điểm eval",
+      "steps": [
+        {
+          "kind": "start",
+          "label": "Viết template cố định",
+          "detail": "vai trò, quy tắc, ví dụ, định dạng"
+        },
+        {
+          "kind": "step",
+          "label": "Khai báo biến",
+          "detail": "{{DOCUMENTS}}, {{QUESTION}}"
+        },
+        {
+          "kind": "step",
+          "label": "Điền dữ liệu lúc chạy",
+          "detail": "bọc trong <documents>, <question>"
+        },
+        {
+          "kind": "step",
+          "label": "Tài liệu dài đặt trước",
+          "note": "Câu hỏi và chỉ dẫn đặt ở cuối"
+        },
+        {
+          "kind": "step",
+          "label": "Gửi request, log phiên bản",
+          "detail": "ghi prompt_version cùng mỗi request"
+        },
+        {
+          "kind": "step",
+          "label": "Chạy eval phiên bản mới"
+        },
+        {
+          "kind": "decision",
+          "label": "Tốt hơn phiên bản cũ?",
+          "note": "Không → giữ bản cũ"
+        },
+        {
+          "kind": "end",
+          "label": "Commit template vào git"
+        }
+      ]
+    },
+    realExamples: [
+      {
+        "title": "Văn phòng luật: 30 hợp đồng và chuyện nhầm bản cũ",
+        "html": "<p>Một văn phòng luật cho Claude trả lời câu hỏi trên bộ 30 hợp đồng của một khách hàng doanh nghiệp. Luật sư hỏi “Thời hạn thanh toán với nhà cung cấp X là bao lâu?” và nhận câu trả lời 30 ngày – nhưng đó là hợp đồng năm 2022 đã bị thay bằng phụ lục 2024 quy định 45 ngày.</p>\n<p><strong>Cách sửa:</strong> template gắn metadata cho từng tài liệu và yêu cầu ưu tiên bản mới nhất:</p>\n<pre><code>&lt;documents&gt;\n  &lt;document index=\"1\"&gt;\n    &lt;source&gt;HĐ cung cấp X – phụ lục 02&lt;/source&gt;\n    &lt;date&gt;2024-03-01&lt;/date&gt;\n    &lt;content&gt;{{DOC_1}}&lt;/content&gt;\n  &lt;/document&gt;\n&lt;/documents&gt;\nNếu các tài liệu mâu thuẫn, ưu tiên tài liệu có ngày mới nhất và nêu rõ nguồn.</code></pre>\n<p>Kèm bước trích dẫn trước, câu trả lời giờ luôn ghi nguồn và ngày, luật sư kiểm tra lại chỉ trong vài giây.</p>"
+      },
+      {
+        "title": "Team sản phẩm: prompt rải rác trong code và cuộc truy vết 2 ngày",
+        "html": "<p>Ở một startup giao đồ ăn, prompt trả lời khách nằm rải rác trong 6 file Python dưới dạng chuỗi dài. Một dev sửa giọng văn “thân thiện hơn” và vô tình xoá câu “không hứa hoàn tiền khi chưa có mã đơn”. Hai ngày sau, CSKH nhận hàng loạt yêu cầu hoàn tiền mà bot đã “hứa”.</p>\n<p><strong>Cách làm lại:</strong> gom toàn bộ prompt vào thư mục <code>prompts/</code>, mỗi file là một template có biến, commit với mô tả lý do. Mỗi request log <code>prompt_version</code>. Trước khi merge, CI chạy eval 50 câu, trong đó có 10 câu về hoàn tiền.</p>\n<p>Lần sau khi có phản ánh, nhóm lọc log theo <code>prompt_version</code> và tìm ra thay đổi gây lỗi trong 15 phút thay vì 2 ngày.</p>"
+      }
+    ],
+    recap: {
+      "summary": [
+        "Template tách phần cố định (vai trò, quy tắc, ví dụ) khỏi phần biến đổi (câu hỏi, tài liệu).",
+        "Phần cố định đặt trước, phần biến đổi đặt sau – dễ đọc và tận dụng được prompt caching.",
+        "Tài liệu dài: đặt trước, gắn metadata nguồn/ngày, trích dẫn trước khi trả lời, chỉ gửi tài liệu liên quan.",
+        "Quản lý prompt như code: file riêng, git, gắn điểm eval, log phiên bản trên production."
+      ],
+      "tips": [
+        "<strong>“Tĩnh trước – động sau”</strong>: phần không đổi lên đầu, phần thay đổi xuống cuối.",
+        "<strong>Prompt là code</strong>: có version, có review, có test.",
+        "Metadata như <strong>nhãn trên hồ sơ giấy</strong>: không có ngày và nguồn thì dễ lấy nhầm bản cũ.",
+        "Bẫy đề thi: “gửi toàn bộ kho tài liệu cho chắc” thường sai – đắt, chậm và làm loãng thông tin."
+      ]
+    },
     sections: [
       {
         h: '1. Prompt template là gì',

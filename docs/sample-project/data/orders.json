@@ -1,0 +1,20 @@
+{
+  "SH1024": {
+    "status": "Đang giao",
+    "eta": "2026-10-03",
+    "paid": true,
+    "items": ["Nhà giả kim", "Đắc nhân tâm"]
+  },
+  "SH1025": {
+    "status": "Đang chuẩn bị",
+    "eta": "2026-10-06",
+    "paid": false,
+    "items": ["Sapiens: Lược sử loài người"]
+  },
+  "SH1026": {
+    "status": "Đã giao",
+    "eta": "2026-09-27",
+    "paid": true,
+    "items": ["Tuổi trẻ đáng giá bao nhiêu"]
+  }
+}

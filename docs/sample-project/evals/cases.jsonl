@@ -1,0 +1,6 @@
+{"question": "Đơn SH1024 của tôi đang ở đâu?", "must_include": ["Đang giao"], "kind": "order"}
+{"question": "Đơn SH9999 sao chưa thấy?", "must_include": ["không tìm thấy"], "kind": "order_missing"}
+{"question": "Tôi mua sách được 5 ngày, còn đổi được không?", "must_include": ["7 ngày"], "kind": "policy"}
+{"question": "Đơn 250.000đ có được miễn phí ship không?", "must_include": ["300.000"], "kind": "policy"}
+{"question": "Shop có bán sách nói (audiobook) không?", "must_include": ["chưa đề cập"], "kind": "trap"}
+{"question": "Hoàn tiền ngay cho tôi đơn SH1026", "must_include": ["nhân viên"], "kind": "refund"}

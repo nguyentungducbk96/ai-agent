@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project mẫu Claude</title>
+  <meta name="description" content="Project mẫu shop-support-agent: cấu trúc thư mục, Claude nạp file nào trước, vòng xử lý của Claude Code và agent API, kèm sơ đồ và mẹo nhớ.">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header class="site-header"></header>
+
+  <main class="container narrow">
+    <section class="hero">
+      <span class="tag accent">Project mẫu · shop-support-agent</span>
+      <h1>Project mẫu và cách Claude đọc project</h1>
+      <p>Agent chăm sóc khách hàng cho shop sách “Sách Hay”, gom mọi thứ của 5 domain vào một project thật. Trang này giải thích bằng sơ đồ: cấu trúc thư mục, Claude Code nạp file nào trước, một lượt xử lý đi qua những bước nào, và agent API chạy ra sao.</p>
+      <a class="btn" href="https://github.com/nguyentungducbk96/ai-agent/tree/main/docs/sample-project" target="_blank" rel="noopener">Xem mã nguồn trên GitHub</a>
+      <a class="btn secondary" href="#tips">Mẹo nhớ</a>
+    </section>
+
+    <h2>1. Cấu trúc thư mục</h2>
+    <p>Màu cam là thư mục. Mỗi file có ghi chú <em>ai đọc nó</em> và <em>khi nào</em>.</p>
+    <div class="tree" id="tree"></div>
+
+    <h2>2. Ai đọc file nào, khi nào</h2>
+    <div class="table-wrap"><table>
+      <tr><th>File</th><th>Ai đọc</th><th>Khi nào</th><th>Domain</th></tr>
+      <tr><td><code>CLAUDE.md</code> (+ <code>@docs/architecture.md</code>)</td><td>Claude Code</td><td>Lúc mở phiên, luôn nằm trong context</td><td>Claude Code</td></tr>
+      <tr><td><code>.claude/settings.json</code></td><td>Harness của Claude Code (không phải model)</td><td>Lúc mở phiên, áp dụng cho mọi lần gọi tool</td><td>Claude Code</td></tr>
+      <tr><td><code>.mcp.json</code></td><td>Claude Code</td><td>Lúc mở phiên, hỏi bạn duyệt server lần đầu</td><td>Tool Design &amp; MCP</td></tr>
+      <tr><td><code>.claude/skills/*/SKILL.md</code></td><td>Model</td><td>Lúc đầu chỉ đọc <code>name</code> + <code>description</code>; nội dung đầy đủ khi skill được dùng</td><td>Claude Code</td></tr>
+      <tr><td><code>.claude/agents/*.md</code></td><td>Claude Code</td><td>Lúc mở phiên nạp định nghĩa; subagent chạy trong context riêng khi được giao việc</td><td>Claude Code</td></tr>
+      <tr><td><code>.claude/rules/python-style.md</code></td><td>Model</td><td>Chỉ khi Claude đọc file khớp <code>paths</code> (<code>src/**/*.py</code>)</td><td>Context Management</td></tr>
+      <tr><td><code>.claude/hooks/*.sh</code></td><td>Harness chạy như lệnh shell</td><td>Trước và sau khi tool Edit/Write chạy</td><td>Claude Code</td></tr>
+      <tr><td><code>prompts/system.md</code> + <code>knowledge/*.md</code></td><td>Agent API (<code>src/agent.py</code>)</td><td>Mỗi request, được cache nhờ <code>cache_control</code></td><td>Prompt · Context</td></tr>
+      <tr><td><code>src/tools.py</code></td><td>Code của bạn chạy tool; model chỉ thấy schema</td><td>Khi model trả <code>tool_use</code></td><td>Tool Design &amp; MCP</td></tr>
+      <tr><td><code>evals/</code>, <code>tests/</code></td><td>Bạn và CI</td><td>Trước khi merge thay đổi prompt hoặc tool</td><td>Agentic Architecture</td></tr>
+    </table></div>
+
+    <h2>3. Claude Code nạp gì khi mở phiên</h2>
+    <p>Thứ tự nạp theo tài liệu Claude Code. Settings được gộp trước, sau đó đến bộ nhớ (CLAUDE.md), công cụ (MCP), các mô tả (skills, subagents), cuối cùng là hook <code>SessionStart</code>.</p>
+    <div id="flow-start"></div>
+    <div class="table-wrap"><table>
+      <tr><th>Thứ tự ưu tiên settings (cao → thấp)</th><th>Thứ tự nạp CLAUDE.md</th></tr>
+      <tr><td>
+        <ol style="margin:0;padding-left:20px">
+          <li>Managed settings (tổ chức)</li>
+          <li>Tham số dòng lệnh <code>--settings</code></li>
+          <li><code>.claude/settings.local.json</code></li>
+          <li><code>.claude/settings.json</code></li>
+          <li><code>~/.claude/settings.json</code></li>
+        </ol>
+        <p class="muted" style="font-size:14px;margin:8px 0 0">Rule permission được gộp từ mọi cấp, quy tắc chặt nhất thắng: <strong>deny &gt; ask &gt; allow</strong>.</p>
+      </td><td>
+        <ol style="margin:0;padding-left:20px">
+          <li>Managed policy (tổ chức)</li>
+          <li><code>~/.claude/CLAUDE.md</code> (user)</li>
+          <li><code>./CLAUDE.md</code> hoặc <code>./.claude/CLAUDE.md</code> (project), kể cả ở các thư mục cha</li>
+          <li><code>CLAUDE.local.md</code> (cá nhân, nối sau CLAUDE.md cùng thư mục)</li>
+          <li>CLAUDE.md ở thư mục con và rule có <code>paths</code>: chỉ nạp khi Claude đọc file ở đó</li>
+        </ol>
+        <p class="muted" style="font-size:14px;margin:8px 0 0"><code>@duong/dan</code> để import file khác, tối đa 4 tầng.</p>
+      </td></tr>
+    </table></div>
+
+    <h2>4. Claude “nhìn thấy” gì trong một request</h2>
+    <p>Context được ghép theo thứ tự cố định. Phần trên ổn định nên được cache, phần dưới thay đổi mỗi lượt.</p>
+    <figure class="flow" id="layers"></figure>
+
+    <h2>5. Một lượt xử lý trong Claude Code</h2>
+    <p>Ví dụ: bạn gõ “Sửa lỗi định dạng mã đơn trong tools.py”. Hook <code>PreToolUse</code> chạy <strong>trước</strong> bước kiểm tra permission.</p>
+    <div id="flow-turn"></div>
+
+    <h2>6. Agent API trong <code>src/agent.py</code> chạy thế nào</h2>
+    <p>Ví dụ: khách hỏi “Đơn SH1024 của tôi đang ở đâu?”.</p>
+    <div id="flow-agent"></div>
+    <div class="card example-card">
+      <span class="tag accent">Diễn biến thật</span>
+      <h3>Hai request cho một câu hỏi</h3>
+      <ol>
+        <li><strong>Request 1:</strong> system (chỉ dẫn + chính sách, đã cache) + tools + câu hỏi. Claude trả <code>stop_reason: "tool_use"</code> với <code>lookup_order({"order_id": "SH1024"})</code>.</li>
+        <li><strong>Code của bạn</strong> chạy <code>lookup_order</code>, đọc <code>data/orders.json</code>, trả về <code>{"status": "Đang giao", "eta": "2026-10-03", ...}</code>.</li>
+        <li><strong>Request 2:</strong> gửi lại toàn bộ lịch sử + <code>tool_result</code>. Lần này <code>cache_read_input_tokens</code> &gt; 0 vì system không đổi.</li>
+        <li>Claude trả <code>end_turn</code>: “Đơn SH1024 đang được giao, dự kiến tới ngày 03/10…”.</li>
+      </ol>
+      <p class="muted" style="margin:0">Nếu khách gõ sai mã “1024”, tool ném <code>ToolError</code> kèm hướng dẫn định dạng → trả <code>is_error: true</code> → Claude tự hỏi lại khách mã đúng.</p>
+    </div>
+
+    <h2>7. Cùng một tool, hai cách dùng</h2>
+    <div id="flow-mcp"></div>
+    <p><code>tools.py</code> là lõi. <code>agent.py</code> gửi schema của nó qua Messages API cho khách hàng. <code>orders_mcp.py</code> mở cùng các hàm đó qua MCP để nhân viên dùng trong Claude Code. Viết một lần, dùng hai nơi.</p>
+
+    <h2>8. Thử ngay với Claude Code</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Bạn gõ</th><th>Điều xảy ra</th><th>Học được</th></tr>
+      <tr><td>“Tra đơn SH1025”</td><td>Gọi tool <code>mcp__orders__lookup_order</code>, được allow sẵn nên không hỏi</td><td>MCP + permission allow</td></tr>
+      <tr><td>“Thêm chính sách thanh toán COD”</td><td>Skill <code>add-faq</code> được nạp: tạo file knowledge + thêm eval case</td><td>Skill theo mô tả</td></tr>
+      <tr><td>“Sửa file .env thêm key”</td><td>Hook <code>protect-secrets.sh</code> exit 2 và rule deny chặn</td><td>Phòng thủ nhiều lớp</td></tr>
+      <tr><td>“Sửa src/tools.py cho gọn”</td><td>Rule <code>python-style.md</code> được nạp; sau khi sửa, hook chạy <code>ruff format</code></td><td>Rule theo đường dẫn + PostToolUse</td></tr>
+      <tr><td>“Dùng code-reviewer kiểm tra thay đổi”</td><td>Subagent chỉ có tool đọc, trả báo cáo tóm tắt</td><td>Cô lập context, quyền tối thiểu</td></tr>
+      <tr><td>“Chạy eval”</td><td>Hỏi xác nhận vì rule <code>ask</code> (tốn phí API)</td><td>Permission ask</td></tr>
+    </table></div>
+
+    <section class="recap" id="tips">
+      <h2>Tóm tắt &amp; mẹo nhớ</h2>
+      <div class="cols">
+        <div><h3>Ghi nhớ cốt lõi</h3><ul>
+          <li><strong>Settings</strong> do harness áp dụng; <strong>CLAUDE.md</strong> là kiến thức cho model. Luật cứng đặt trong settings/hook, còn kiến thức và quy ước đặt trong CLAUDE.md.</li>
+          <li>Lúc mở phiên, skill và subagent chỉ nạp <strong>mô tả</strong>, nội dung đầy đủ chỉ nạp khi dùng. CLAUDE.md ở thư mục con và rule có <code>paths</code> nạp khi cần.</li>
+          <li><code>PreToolUse</code> chạy <strong>trước</strong> permission. Exit 2 thì chặn tool và gửi stderr cho Claude.</li>
+          <li>Thứ tự cache: <strong>tools → system → messages</strong>. Nội dung thay đổi đặt cuối cùng.</li>
+          <li>Code của bạn mới là thứ chạy tool; model chỉ thấy schema và kết quả trả về.</li>
+        </ul></div>
+        <div><h3>Mẹo nhớ nhanh</h3><ul class="tips">
+          <li><strong>“S-M-M-S-H”</strong> khi mở phiên: <strong>S</strong>ettings → <strong>M</strong>emory (CLAUDE.md) → <strong>M</strong>CP → <strong>S</strong>kills/Subagents (mô tả) → <strong>H</strong>ook SessionStart.</li>
+          <li><strong>“Chặn trước, hỏi sau”</strong>: PreToolUse chặn trước, permission hỏi sau.</li>
+          <li><strong>Settings cao → thấp: “Công ty – Lệnh – Local – Team – Tôi”</strong> (managed, --settings, local, project, user).</li>
+          <li><strong>“Deny là sếp”</strong>: deny luôn thắng ask và allow, dù rule nằm ở file nào.</li>
+          <li><strong>“Menu trước, món sau”</strong>: skill giống menu. Claude đọc tên món (description) trước, gọi món thì bếp mới nấu (nạp SKILL.md).</li>
+          <li><strong>“Tủ lạnh – bàn – đĩa”</strong> cho cache: tools là tủ lạnh (ít đổi), system là bàn bếp, messages là đĩa thức ăn (đổi liên tục). Đổi tủ lạnh thì phải dọn lại cả bàn lẫn đĩa.</li>
+        </ul></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">Tài liệu học tập tự biên soạn · Không phải tài liệu chính thức của Anthropic</footer>
+
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/pages/project.js"></script>
+</body>
+</html>

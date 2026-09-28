@@ -19,6 +19,58 @@ window.LESSONS.push(
       'Tự đánh giá mức độ nắm vững từng chủ đề',
       'Lập kế hoạch ôn tập tập trung vào điểm yếu'
     ],
+    flow: {
+      title: 'Ôn theo vòng: tự chấm → ôn chỗ yếu → quiz → thi thử lại',
+      steps: [
+        { kind: 'start', label: 'Bắt đầu tuần ôn tập', detail: 'Mở bản đồ kiến thức 5 domain' },
+        { kind: 'step', label: 'Tự chấm từng chủ đề 1–5', note: '1 = chưa hiểu, 5 = dạy lại được' },
+        { kind: 'decision', label: 'Chủ đề ≤ 3 điểm?', note: 'Không → chuyển sang chủ đề tiếp theo' },
+        { kind: 'step', label: 'Làm lại bài tập không xem giải', detail: 'Ưu tiên Agentic Architecture' },
+        { kind: 'step', label: 'Giải thích thành tiếng', detail: 'Phương pháp Feynman', note: 'Chỗ ấp úng = chỗ cần ôn' },
+        { kind: 'step', label: 'Làm quiz của bài đó', loopTo: 1, loopLabel: 'chấm lại' },
+        { kind: 'end', label: 'Mọi chủ đề ≥ 4 điểm', detail: 'Sẵn sàng làm đề thi thử' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Chị Lan và bảng tự chấm “thật thà”',
+        html: `<p>Chị Lan là backend developer ở một công ty outsource tại Đà Nẵng. Sau 5 tháng học, chị tự tin mình “ổn cả”. Khi ngồi chấm từng dòng trong bản đồ kiến thức, chị phát hiện ra 3 chủ đề chỉ đạt 2 điểm: thứ tự prefix của prompt caching, sự khác nhau giữa Tool Runner và Agent SDK, và exit code của hook.</p>
+<p>Chị không học lại cả tháng mà chỉ làm lại đúng 3 bài tập tương ứng, không mở lời giải. Với caching, chị viết lên giấy “<code>tools → system → messages</code>”, thử chèn timestamp vào system prompt rồi xem <code>cache_read_input_tokens</code> tụt về 0. Tận mắt thấy lỗi nên chị nhớ rất lâu.</p>
+<p>Cuối tuần, chị giải thích lại cho đồng nghiệp mới vào “vì sao subagent giúp context gọn”. Chỗ nào nói vấp, chị ghi vào thẻ ghi nhớ. Kết quả: 3 chủ đề lên 4–5 điểm và điểm đề thi thử tăng từ 64% lên 78%.</p>`
+      },
+      {
+        title: 'Thẻ ghi nhớ cho các chi tiết dễ nhầm',
+        html: `<p>Anh Minh (Hà Nội) học trên xe buýt mỗi sáng 30 phút. Anh làm 12 thẻ ghi nhớ trên điện thoại, mặt trước là câu hỏi, mặt sau là đáp án ngắn:</p>
+<pre><code>Q: JSON đúng schema trên messages.create()?
+A: output_config.format (type json_schema) – không prefill
+
+Q: Tool lỗi thì trả gì?
+A: tool_result + is_error: true + thông báo có hướng dẫn
+
+Q: allow và deny cùng khớp?
+A: deny thắng
+
+Q: Hook PreToolUse muốn chặn?
+A: exit code 2, lý do in ra stderr</code></pre>
+<p>Mỗi ngày anh lật ngẫu nhiên 10 thẻ. Thẻ nào trả lời sai thì đưa lên đầu hàng đợi. Sau 2 tuần, anh không còn nhầm giữa <code>strict</code> (đặt trên tool) và <code>tool_choice</code>. Đây là loại chi tiết mà đề thi tình huống rất hay dùng để tạo đáp án nhiễu.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        '5 domain: Prompt Engineering, Tool Design & MCP, Claude Code, Context Management, Agentic Architecture',
+        'Agentic Architecture được nhận định là domain nặng nhất – dành nhiều thời gian ôn nhất',
+        'Tự chấm 1–5 cho từng chủ đề, chỉ ôn lại chủ đề ≤ 3 điểm',
+        'Làm lại bài tập không xem lời giải, giải thích thành tiếng để tìm lỗ hổng',
+        'Dùng thẻ ghi nhớ cho chi tiết kỹ thuật dễ nhầm'
+      ],
+      tips: [
+        'Mẹo tổng 5 domain – “Phải Tìm Công Cụ Ảo”: Prompt · Tool & MCP · Claude Code · Context · Agentic',
+        'Cache đọc theo thứ tự “Tôi Sẽ Mời”: Tools → System → Messages',
+        'Permission: “Cấm là cấm” – deny luôn thắng allow',
+        'Hook chặn = “số 2 là dừng”: PreToolUse exit code 2',
+        'Tool lỗi thì “đừng im lặng”: luôn trả tool_result có is_error: true'
+      ]
+    },
     sections: [
       {
         h: '1. Bản đồ kiến thức 5 domain',
@@ -148,6 +200,58 @@ window.LESSONS.push(
       'Áp dụng quy trình đọc – loại trừ – chọn đáp án',
       'Phân tích câu sai để rút kinh nghiệm'
     ],
+    flow: {
+      title: 'Câu tình huống: đọc ràng buộc → loại trừ → chọn đáp án đơn giản nhất',
+      steps: [
+        { kind: 'start', label: 'Đọc bối cảnh tình huống', detail: 'Ai dùng? Quy mô? Mục tiêu?' },
+        { kind: 'step', label: 'Gạch chân ràng buộc', detail: 'Chi phí · độ trễ · bảo mật · quy mô' },
+        { kind: 'step', label: 'Đọc kỹ câu hỏi', note: '“tốt nhất”, “đầu tiên” hay “không nên”?' },
+        { kind: 'step', label: 'Loại đáp án vi phạm nguyên tắc', detail: 'Quá phức tạp, quyền rộng, lộ secret' },
+        { kind: 'decision', label: 'Còn phân vân 2 đáp án?', note: 'Không → chọn đáp án còn lại' },
+        { kind: 'step', label: 'Chọn cách đơn giản nhất', note: 'Start simple · đo trước tối ưu' },
+        { kind: 'decision', label: 'Quá 2 phút cho câu này?', note: 'Có → đánh dấu, làm câu khác' },
+        { kind: 'end', label: 'Ghi đáp án, sang câu tiếp' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Giải mẫu: chatbot bán hàng và bẫy “multi-agent”',
+        html: `<p><strong>Đề:</strong> Một chuỗi cửa hàng điện máy ở TP.HCM cần trích xuất 5 trường (tên khách, số điện thoại, sản phẩm, ngày giao, địa chỉ) từ tin nhắn Zalo đặt hàng để ghi vào CRM. Có 4 đáp án: (1) multi-agent gồm một agent điều phối và các worker; (2) một lần gọi Messages API kèm structured output; (3) agent tự do với 8 tool; (4) prefill dấu <code>{</code> để ép ra JSON.</p>
+<p><strong>Ràng buộc:</strong> 5 trường cố định, cần JSON hợp lệ, số lượng lớn.</p>
+<p><strong>Loại trừ:</strong></p>
+<ul>
+<li>Đáp án (1) và (3) phức tạp hơn nhiều so với nhu cầu.</li>
+<li>Đáp án (4) trả lỗi 400 trên các model đời mới, vì các model này không hỗ trợ prefill.</li>
+</ul>
+<p><strong>Chọn:</strong> đáp án (2), tức một lần gọi API với <code>output_config.format</code>. Đây là giải pháp đơn giản nhất mà vẫn đáp ứng đủ yêu cầu.</p>`
+      },
+      {
+        title: 'Nhật ký phân tích câu sai của một nhóm học',
+        html: `<p>Nhóm 4 bạn ở một công ty fintech tại Hà Nội làm đề thi thử 60 câu rồi ghi mỗi câu sai vào một bảng chung với 4 cột:</p>
+<pre><code>Chủ đề      | Lý do sai            | Kiến thức đúng
+Caching     | Đọc nhầm câu hỏi     | Hỏi "làm gì ĐẦU TIÊN" → bật caching trước
+Subagent    | Thiếu kiến thức      | Subagent = context riêng, trả tóm tắt
+Permission  | Phân vân 2 đáp án    | deny thắng allow
+Agent SDK   | Nhầm với Tool Runner | Agent SDK có sẵn tool Read/Edit/Bash</code></pre>
+<p>Sau 2 đề, nhóm thấy 40% câu sai đến từ việc “đọc nhầm câu hỏi”, không phải do thiếu kiến thức. Từ đó cả nhóm tập thói quen khoanh tròn các từ khoá “đầu tiên”, “không nên”, “tốt nhất” trước khi đọc đáp án. Điểm trung bình của nhóm tăng thêm 9%.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Đề CCAR-F: 60 câu tình huống, 4 tình huống/đề, 120 phút ≈ 2 phút/câu, đạt 720/1000',
+        'Quy trình 4 bước: đọc bối cảnh → đọc câu hỏi → loại trừ → chọn',
+        'Đáp án đúng thường là giải pháp đơn giản nhất đáp ứng đủ ràng buộc',
+        'Câu khó: đánh dấu và quay lại, không sa lầy',
+        'Phân tích câu sai theo nguyên nhân: thiếu kiến thức hay đọc nhầm đề'
+      ],
+      tips: [
+        '“Đọc – Gạch – Loại – Chọn”: 4 bước cho mọi câu tình huống',
+        '“Đơn giản thắng hoành tráng”: một lần gọi API thắng multi-agent nếu đủ đáp ứng',
+        'Bẫy thường gặp: prefill, budget_tokens, token quyền rộng, không đo lường',
+        'Từ khoá cần khoanh: “đầu tiên”, “tốt nhất”, “không nên”, “chi phí thấp nhất”',
+        'Quy tắc 2 phút: quá 2 phút thì đánh dấu và đi tiếp'
+      ]
+    },
     sections: [
       {
         h: '1. Cấu trúc đề CCAR-F',
@@ -274,6 +378,54 @@ window.LESSONS.push(
       'Nắm quy trình đăng ký qua Partner Academy / Pearson VUE',
       'Hiểu chính sách thi lại và hiệu lực chứng chỉ'
     ],
+    flow: {
+      title: 'Đăng ký: kiểm tra điều kiện trước, thi lại theo mốc 14/30/90 ngày',
+      steps: [
+        { kind: 'start', label: 'Chuẩn bị đăng ký thi' },
+        { kind: 'decision', label: 'Công ty thuộc Partner Network?', note: 'Không → hỏi bộ phận đối tác / đào tạo' },
+        { kind: 'step', label: 'Vào Partner Academy', detail: 'Đăng nhập bằng email công ty', note: 'Đọc exam guide, làm khoá ôn thi' },
+        { kind: 'step', label: 'Lên lịch qua Pearson VUE', detail: 'Chọn CCAR-F, ngày giờ, hình thức' },
+        { kind: 'step', label: 'Chuẩn bị giấy tờ và thiết bị', note: 'Thi online: kiểm tra webcam, phòng' },
+        { kind: 'step', label: 'Thi 120 phút' },
+        { kind: 'decision', label: 'Đạt 720/1000?', note: 'Không → chờ 14 / 30 / 90 ngày rồi thi lại' },
+        { kind: 'end', label: 'Nhận chứng chỉ (12 tháng)' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Anh Tuấn tìm ra “cửa” đăng ký qua công ty',
+        html: `<p>Anh Tuấn là tech lead ở một công ty phần mềm tại TP.HCM. Anh định đăng ký thi bằng Gmail cá nhân và bị từ chối, vì kỳ thi yêu cầu email thuộc tên miền của một tổ chức trong Claude Partner Network.</p>
+<p>Anh hỏi bộ phận quan hệ đối tác và biết công ty đã tham gia chương trình từ đầu năm. Chỉ cần gửi yêu cầu cấp quyền truy cập Partner Academy cho email <code>tuan@congty.vn</code>. Hai ngày sau, anh vào được Academy và làm khoá ôn thi. Anh cũng tải exam guide chính thức để xem tỉ trọng từng domain.</p>
+<p>Anh so tỉ trọng đó với lộ trình của mình và dời thêm 3 buổi ôn sang Agentic Architecture. Sau đó anh chọn một buổi sáng thứ Bảy để thi online qua Pearson VUE. Tối hôm trước, anh chạy trước bài kiểm tra hệ thống (webcam, micro, mạng) để sáng hôm sau không bị bất ngờ.</p>`
+      },
+      {
+        title: 'Lên kế hoạch thi lại thông minh',
+        html: `<p>Chị Hà (Cần Thơ) thi lần 1 được 690, thiếu 30 điểm so với mốc 720. Báo cáo theo domain cho thấy chị yếu nhất ở Context Management.</p>
+<p>Chị không vội đăng ký lại mà lập lịch theo quy định chờ:</p>
+<pre><code>Ngày 0      : thi lần 1 – 690 điểm
+Ngày 1–10   : ôn Context Management (caching, compaction, context editing)
+Ngày 11–13  : 2 đề thi thử, cả hai ≥ 80%
+Ngày 14     : sớm nhất được thi lại (lần 2)
+Nếu trượt   : chờ 30 ngày trước lần 3, rồi 90 ngày trước lần 4</code></pre>
+<p>Chị thi lần 2 vào ngày 16 và đạt 780. Bài học: thời gian chờ tăng dần (14 → 30 → 90 ngày) và mỗi năm chỉ được tối đa 4 lần thi. Vì vậy mỗi lần thi phải thật sự sẵn sàng, đừng “thi thử bằng đề thật”.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Điều kiện: email công ty thuộc tổ chức trong Claude Partner Network',
+        'Quy trình: Partner Academy → Pearson VUE → thi → nhận kết quả',
+        'Chứng chỉ hiệu lực 12 tháng',
+        'Tối đa 4 lần thi / 12 tháng; chờ 14 → 30 → 90 ngày giữa các lần',
+        'Lệ phí và quy định có thể thay đổi – luôn kiểm tra trang chính thức'
+      ],
+      tips: [
+        'Nhớ mốc chờ “14 – 30 – 90”: hai tuần, một tháng, một quý',
+        '“Không partner, không thi”: kiểm tra Partner Network đầu tiên',
+        '“4 lần – 12 tháng”: con số giới hạn thi lại',
+        'Đọc exam guide chính thức trước khi chốt lịch ôn cuối',
+        'Thi online: kiểm tra thiết bị trước 1 ngày'
+      ]
+    },
     sections: [
       {
         h: '1. Điều kiện',
@@ -397,6 +549,52 @@ window.LESSONS.push(
       'Chuẩn bị hậu cần cho ngày thi',
       'Kế hoạch sau khi có kết quả'
     ],
+    flow: {
+      title: 'Tuần thi: ôn nhẹ, chuẩn bị hậu cần, phân bổ thời gian trong phòng thi',
+      steps: [
+        { kind: 'start', label: 'Còn 3 ngày trước thi' },
+        { kind: 'step', label: 'Làm 1 đề thử cuối', detail: 'Chỉ ôn thẻ ghi nhớ và câu sai' },
+        { kind: 'step', label: 'Ngày trước: nghỉ ngơi', note: 'Kiểm tra lịch, giấy tờ, thiết bị' },
+        { kind: 'step', label: 'Vào thi: 60 phút đầu ~30 câu', detail: 'Khoảng 2 phút mỗi câu' },
+        { kind: 'decision', label: 'Gặp câu khó?', note: 'Có → đánh dấu, làm tiếp, quay lại sau' },
+        { kind: 'step', label: '10–15 phút cuối xem lại', detail: 'Chỉ các câu đã đánh dấu' },
+        { kind: 'decision', label: 'Đạt 720/1000?', note: 'Không → ôn domain yếu, chờ 14 ngày' },
+        { kind: 'end', label: 'Chọn chứng chỉ tiếp theo' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Buổi sáng thi của Quân',
+        html: `<p>Quân thi online lúc 8h sáng tại nhà ở Hải Phòng. Tối hôm trước, cậu không học thêm gì mới mà chỉ lật lại 20 thẻ ghi nhớ và đọc lại bảng câu sai. Cậu dọn bàn, tắt thông báo điện thoại và chạy kiểm tra hệ thống của Pearson VUE.</p>
+<p>Trong phòng thi, Quân đặt mốc: đến phút 60 phải xong câu 30. Gặp một câu hỏi dài về kiến trúc multi-agent, cậu đọc hai lần vẫn phân vân nên đánh dấu rồi đi tiếp. Đến phút 58, cậu đang ở câu 31, đúng kế hoạch.</p>
+<p>Còn 15 phút, cậu quay lại 6 câu đã đánh dấu. Lúc này đầu óc thoải mái hơn, cậu nhận ra một đáp án nhiễu cấp token <code>admin:org</code> cho agent chỉ cần tạo issue. Cậu loại ngay theo nguyên tắc quyền tối thiểu. Kết quả: 812 điểm.</p>`
+      },
+      {
+        title: 'Sau khi đạt: kế hoạch 12 tháng',
+        html: `<p>Chị My (Hà Nội) đạt CCAR-F và lập kế hoạch cho năm tiếp theo vì chứng chỉ chỉ có hiệu lực 12 tháng:</p>
+<pre><code>Tháng 1–2  : chia sẻ lại cho team (buổi nội bộ 1 giờ)
+Tháng 3–6  : áp dụng vào dự án thật – agent phân loại ticket
+Tháng 7–9  : ôn Developer – Foundations (CCDV-F)
+Tháng 10–12: cân nhắc Architect – Professional (CCAR-P)</code></pre>
+<p>Chị ghi lại cả những gì đã thay đổi trong API trong năm (tham số mới, model mới). Làm vậy thì khi thi lại hay thi chứng chỉ tiếp theo, chị không bị kiến thức cũ đánh lừa.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        '2–3 ngày trước thi: 1 đề thử, chỉ ôn thẻ ghi nhớ và câu sai',
+        'Ngày trước thi: nghỉ ngơi, kiểm tra lịch, giấy tờ, thiết bị',
+        'Trong phòng thi: phút 60 xong khoảng 30 câu, câu khó đánh dấu',
+        'Dành 10–15 phút cuối xem lại câu đã đánh dấu',
+        'Sau thi: đạt thì lập kế hoạch 12 tháng; chưa đạt thì ôn domain yếu và chờ 14 ngày'
+      ],
+      tips: [
+        '“Không học mới trước giờ G”: chỉ ôn lại',
+        'Mốc giữa giờ: “60 phút – 30 câu”',
+        '“Đánh dấu, đừng đánh vật” với câu khó',
+        'Xem lại với đầu óc tươi: đáp án nhiễu dễ lộ hơn',
+        'Chứng chỉ 12 tháng: đặt lịch nhắc gia hạn ngay khi đạt'
+      ]
+    },
     sections: [
       {
         h: '1. Trước ngày thi',
@@ -508,6 +706,59 @@ window.LESSONS.push(
       'Thấy cách một tình huống trộn nhiều domain',
       'Tự giải thích được vì sao mỗi đáp án sai là sai'
     ],
+    flow: {
+      title: 'Giải đề mẫu: lập bảng ràng buộc rồi áp nguyên tắc cho từng câu',
+      steps: [
+        { kind: 'start', label: 'Đọc toàn bộ tình huống', detail: 'Công ty, người dùng, mục tiêu' },
+        { kind: 'step', label: 'Lập bảng ràng buộc', detail: 'Chi phí · độ trễ · bảo mật · quy mô' },
+        { kind: 'step', label: 'Đọc câu hỏi thứ N', note: 'Xác định domain của câu' },
+        { kind: 'step', label: 'Đối chiếu nguyên tắc', detail: 'Start simple, least privilege, đo lường' },
+        { kind: 'step', label: 'Loại đáp án sai, chọn', note: 'Ghi lý do loại từng đáp án' },
+        { kind: 'decision', label: 'Còn câu trong tình huống?', note: 'Không → kết thúc tình huống' },
+        { kind: 'step', label: 'Sang câu tiếp theo', loopTo: 2, loopLabel: 'câu tiếp' },
+        { kind: 'end', label: 'Tổng kết lỗi theo domain' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Bảng ràng buộc cho tình huống FinDesk',
+        html: `<p>Trước khi trả lời 8 câu của tình huống FinDesk, bạn nên chuyển đoạn văn dài thành một bảng ràng buộc ngắn gọn. Có bảng này, mỗi câu hỏi chỉ cần tra lại thay vì đọc lại cả đoạn:</p>
+<pre><code>Người dùng  : khách hàng ngân hàng + nhân viên hỗ trợ
+Quy mô      : ~30.000 câu hỏi/ngày, cao điểm giờ hành chính
+Độ trễ      : chatbot cần phản hồi nhanh (streaming)
+Bảo mật     : dữ liệu tài chính, hành động hoàn tiền không đảo ngược
+Chi phí     : ngân sách chặt, cần đo chi phí trên mỗi ticket
+Hạ tầng     : team nhỏ, không muốn tự vận hành server agent</code></pre>
+<p>Ví dụ: gặp câu “làm gì đầu tiên để giảm chi phí”, bạn nhìn vào dòng Quy mô và Chi phí rồi nghĩ ngay tới prompt caching. Gặp câu “agent hoàn tiền”, bạn nhìn dòng Bảo mật và nghĩ tới việc con người phải duyệt (human-in-the-loop).</p>`
+      },
+      {
+        title: 'Tự chấm sau khi giải đề mẫu',
+        html: `<p>Bạn Nam (sinh viên năm cuối ở Huế) giải 8 câu FinDesk và sai 3 câu. Thay vì chỉ ghi “sai câu 3, 5, 7”, Nam ghi lại nguyên nhân của từng câu:</p>
+<pre><code>Câu 3 (Context)  : chọn "tăng context window" thay vì caching
+                   → chưa nắm "đòn bẩy miễn phí trước"
+Câu 5 (Agentic)  : chọn Agent SDK cho việc chạy theo lịch
+                   → nhầm; team không muốn vận hành = Managed Agents
+Câu 7 (Claude Code): chọn ghi vào CLAUDE.md thay vì hook
+                   → "phải xảy ra 100%" = hook</code></pre>
+<p>Cả 3 lỗi đều có dạng “đúng một nửa”: đáp án Nam chọn có làm được việc nhưng không phải lựa chọn tốt nhất theo ràng buộc. Từ đó Nam tập thói quen tự hỏi: “Đáp án này có khớp với <em>từng</em> dòng trong bảng ràng buộc không?”</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Chuyển tình huống dài thành bảng ràng buộc trước khi đọc câu hỏi',
+        'Xác định domain của từng câu để gọi đúng nguyên tắc',
+        'Ghi lý do loại từng đáp án – rèn phản xạ phát hiện bẫy',
+        'Đáp án “làm được nhưng không tối ưu” là bẫy phổ biến nhất',
+        'Tổng kết lỗi theo domain để biết cần ôn phần nào'
+      ],
+      tips: [
+        '“Một bảng – tám câu”: lập bảng ràng buộc một lần, dùng cho cả tình huống',
+        'Chi phí → nghĩ caching/Batch; Rủi ro → nghĩ human-in-the-loop',
+        '“100% phải xảy ra” → hook; “thỉnh thoảng dùng” → skill',
+        '“Không muốn vận hành” → Managed Agents; “tự host, có sẵn tool” → Agent SDK',
+        'Hỏi mỗi đáp án: có khớp TỪNG ràng buộc không?'
+      ]
+    },
     sections: [
       {
         h: 'Tình huống: FinDesk',

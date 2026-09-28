@@ -20,6 +20,54 @@ window.LESSONS.push(
       'Dùng prompt caching đúng cách, kiểm tra cache hit',
       'Chọn giữa nhồi toàn bộ tài liệu, RAG, compaction và context editing'
     ],
+    flow: {
+      title: 'Prompt caching: phần ổn định đứng trước, phần thay đổi đứng sau',
+      steps: [
+        { kind: 'start', label: 'Request mới tới API' },
+        { kind: 'step', label: 'Ghép prefix theo thứ tự', detail: 'tools → system → messages', note: 'Đổi 1 byte ở đâu, cache sau đó mất' },
+        { kind: 'step', label: 'Gặp điểm cache_control', detail: 'Tối đa 4 breakpoint mỗi request' },
+        { kind: 'decision', label: 'Prefix khớp cache còn TTL?', note: 'Không → ghi cache (~125% giá input)' },
+        { kind: 'step', label: 'Đọc cache', detail: 'cache_read_input_tokens > 0', note: 'Chỉ ~10% giá input, nhanh hơn' },
+        { kind: 'step', label: 'Xử lý phần sau breakpoint', detail: 'Câu hỏi, dữ liệu mới: giá thường' },
+        { kind: 'step', label: 'Trả lời và log usage', detail: 'Kiểm tra cache_read mỗi lần' },
+        { kind: 'end', label: 'Request sau dùng lại cache' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Chatbot nhân sự của một công ty 800 nhân viên',
+        html: `<p><strong>Trước:</strong> Phòng nhân sự một công ty phần mềm ở Hà Nội gắn sổ tay nhân viên 60.000 token vào mỗi câu hỏi. Mỗi ngày có khoảng 1.500 câu hỏi như “nghỉ phép năm được bao nhiêu ngày”, nên 90 triệu token input mỗi ngày gần như bị tính giá đầy đủ, và mỗi câu trả lời mất 6–8 giây.</p>
+<p><strong>Sau:</strong> Đội kỹ thuật chuyển sổ tay vào một khối <code>system</code> cố định có <code>cache_control</code>, còn câu hỏi của nhân viên đặt trong <code>messages</code>. Từ lần gọi thứ hai, phần sổ tay được đọc từ cache với giá chỉ khoảng 10%, và độ trễ giảm rõ rệt.</p>
+<p><strong>Bài học:</strong> có tuần <code>cache_read_input_tokens</code> tụt về 0. Nguyên nhân là ai đó thêm “Hôm nay là {ngày giờ}” vào đầu system prompt. Họ chuyển dòng ngày tháng xuống lượt user thì cache hoạt động lại.</p>`
+      },
+      {
+        title: 'Tra cứu 40.000 văn bản pháp luật cho công ty luật',
+        html: `<p><strong>Bài toán:</strong> Một công ty luật ở TP.HCM có 40.000 văn bản (luật, nghị định, thông tư), mỗi tháng thêm vài trăm văn bản mới. Kho này quá lớn để đưa hết vào context, và luật sư cần câu trả lời <em>có trích nguồn</em>.</p>
+<p><strong>Giải pháp RAG:</strong></p>
+<ol>
+<li>Chia văn bản thành từng đoạn khoảng 500 token và gắn metadata: số hiệu văn bản, điều, ngày hiệu lực.</li>
+<li>Khi có câu hỏi, tìm 20 đoạn liên quan, xếp hạng lại rồi giữ 5 đoạn tốt nhất.</li>
+<li>Đưa 5 đoạn đó vào thẻ <code>&lt;document&gt;</code> kèm nguồn, và yêu cầu Claude trích dẫn nguyên văn trước khi trả lời.</li>
+</ol>
+<p><strong>Kết quả:</strong> mỗi câu hỏi chỉ tốn khoảng 4.000 token thay vì hàng triệu token. Văn bản mới được tra cứu được ngay sau khi index, không phải huấn luyện lại model. Khi không tìm được đoạn phù hợp, hệ thống trả lời “chưa tìm thấy căn cứ” thay vì bịa.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Context là tài nguyên hữu hạn: đưa đúng thông tin, vừa đủ, đúng lúc.',
+        'Prompt caching khớp theo tiền tố, thứ tự tools → system → messages, tối đa 4 breakpoint.',
+        'Đọc cache khoảng 10% giá input, ghi cache khoảng 125%; TTL mặc định 5 phút, có tuỳ chọn 1 giờ.',
+        'Kiểm tra bằng usage.cache_read_input_tokens; luôn bằng 0 nghĩa là có thứ phá cache trong prefix.',
+        'Kho nhỏ thì nhồi vào context kèm cache; kho lớn hay đổi thì dùng RAG; codebase thì để agent tự tìm; phiên dài thì dùng compaction hoặc context editing.'
+      ],
+      tips: [
+        'Nhớ “TSM” (Tools → System → Messages) như thứ tự xếp hàng: người đứng trước đổi chỗ thì cả hàng phía sau phải xếp lại.',
+        'Câu vần: “Ổn định lên đầu, thay đổi xuống sau, cache mới giàu.”',
+        'Thấy timestamp, UUID hay JSON không sắp xếp key trong system prompt: đó là thủ phạm phá cache, một bẫy hay gặp trong đề.',
+        '“Mười phần trăm khi đọc, một trăm hai lăm khi ghi”: gọi lặp lại nhiều lần mới có lời.',
+        'Đề hỏi kho lớn, cập nhật thường xuyên, cần trích nguồn thì chọn RAG, không chọn fine-tune hay nhồi toàn bộ.'
+      ]
+    },
     sections: [
       {
         h: '1. Context là tài nguyên',
@@ -258,6 +306,54 @@ def answer(question, folder="docs_kb"):
       'Nắm 5 mẫu workflow phổ biến',
       'Quyết định khi nào thật sự cần agent'
     ],
+    flow: {
+      title: 'Chọn kiến trúc: bắt đầu đơn giản nhất, chỉ lên agent khi thật cần',
+      steps: [
+        { kind: 'start', label: 'Có một nhiệm vụ cần Claude' },
+        { kind: 'decision', label: 'Một lần gọi API là đủ?', note: 'Có → dừng ở đây (single call)' },
+        { kind: 'decision', label: 'Các bước biết trước?', note: 'Có → workflow do code điều khiển' },
+        { kind: 'step', label: 'Chọn mẫu workflow', detail: 'chaining · routing · parallel', note: 'orchestrator–workers · evaluator–optimizer' },
+        { kind: 'decision', label: 'Đủ 4 điều kiện dùng agent?', note: 'Phức tạp · giá trị · khả thi · sửa được lỗi' },
+        { kind: 'step', label: 'Xây agent có tool', detail: 'Model tự quyết bước tiếp theo' },
+        { kind: 'step', label: 'Đo bằng eval', detail: 'Chất lượng, chi phí, độ trễ', loopTo: 1, loopLabel: 'xem lại' },
+        { kind: 'end', label: 'Chọn cách đơn giản nhất' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Routing cho tổng đài chăm sóc khách hàng của một ví điện tử',
+        html: `<p><strong>Trước:</strong> Một ví điện tử nhận 30.000 câu hỏi mỗi ngày và gửi tất cả tới model mạnh nhất. Khoảng 70% câu hỏi thuộc loại “đổi mật khẩu ở đâu”, “phí chuyển tiền bao nhiêu”, nhưng vẫn tốn chi phí như câu khó.</p>
+<p><strong>Sau:</strong> Họ thêm bước <strong>routing</strong>. Một model nhanh (Haiku) phân loại câu hỏi thành <code>simple</code> hoặc <code>complex</code> bằng structured output. Câu đơn giản đi tiếp tới Haiku kèm FAQ đã cache. Câu phức tạp như khiếu nại giao dịch hay nghi lừa đảo đi tới Opus, và được chuyển cho nhân viên nếu cần.</p>
+<p><strong>Đo lường:</strong> Trước khi áp dụng, họ chạy eval 300 câu có đáp án chuẩn cho cả hai cấu hình. Chất lượng giữ nguyên với câu đơn giản, còn chi phí trung bình mỗi câu giảm mạnh. Nhờ vậy họ quyết định dựa trên số liệu chứ không theo cảm tính.</p>`
+      },
+      {
+        title: 'Prompt chaining + evaluator–optimizer cho đội marketing',
+        html: `<p><strong>Bài toán:</strong> Một chuỗi cà phê cần mỗi tuần 20 bài đăng Facebook theo giọng thương hiệu, và mỗi bài phải đạt rubric nội bộ từ 8/10 trở lên.</p>
+<p><strong>Luồng xử lý:</strong></p>
+<ol>
+<li><strong>Chaining:</strong> viết dàn ý, rồi <em>cổng kiểm tra</em> bằng code xem đã có đủ ưu đãi và CTA chưa, rồi mới viết bài.</li>
+<li><strong>Evaluator–optimizer:</strong> model B chấm bài theo rubric (giọng văn, độ dài ≤ 120 từ, có hashtag) và trả về JSON <code>{score, feedback}</code>. Model A sửa bài theo feedback, lặp tối đa 3 vòng.</li>
+<li>Bài vẫn dưới 8 điểm sau 3 vòng được đánh dấu để người duyệt.</li>
+</ol>
+<p><strong>Vì sao không dùng agent:</strong> các bước đã biết trước và có tiêu chí chấm rõ, nên workflow rẻ hơn, dễ debug hơn và kết quả ổn định hơn một agent tự do.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Workflow do code định sẵn các bước; agent để model tự quyết bước tiếp theo.',
+        'Luôn bắt đầu từ cách đơn giản nhất: một lần gọi, rồi workflow, rồi mới đến agent.',
+        'Năm mẫu workflow: prompt chaining, routing, parallelization, orchestrator–workers, evaluator–optimizer.',
+        'Chỉ dùng agent khi đủ 4 điều kiện: nhiệm vụ phức tạp, có giá trị, khả thi, và lỗi có thể phát hiện và sửa được.',
+        'Multi-agent tốn nhiều token; chỉ đáng dùng khi việc chia nhánh được hoặc một agent sẽ tràn context.'
+      ],
+      tips: [
+        '5 mẫu workflow nhớ theo “Chuỗi – Rẽ – Song – Nhạc trưởng – Giám khảo”: chaining, routing, parallel, orchestrator, evaluator.',
+        'Orchestrator–workers giống nhạc trưởng: không biết trước cần bao nhiêu nhạc công, thấy cần thì gọi thêm.',
+        '4 điều kiện dùng agent nhớ “PGKS”: Phức tạp, Giá trị, Khả thi, Sửa được.',
+        'Bẫy đề thi: đáp án multi-agent nghe “xịn” nhưng đề chỉ cần trích xuất vài trường thì chọn một lần gọi API.',
+        'Có rubric chấm rõ ràng thì nghĩ ngay tới evaluator–optimizer; input chia thành nhóm rõ ràng thì nghĩ tới routing.'
+      ]
+    },
     sections: [
       {
         h: '1. Workflow hay agent?',
@@ -499,6 +595,54 @@ window.LESSONS.push(
       'Viết agent đầu tiên bằng Claude Agent SDK',
       'Cấu hình tool, MCP và permission cho agent'
     ],
+    flow: {
+      title: 'Hai câu hỏi chọn cách xây agent: ai chạy vòng lặp, ai host hạ tầng',
+      steps: [
+        { kind: 'start', label: 'Cần xây một agent' },
+        { kind: 'decision', label: 'Muốn Anthropic host tất cả?', note: 'Có → Managed Agents (harness + sandbox)' },
+        { kind: 'decision', label: 'Cần Read/Edit/Bash có sẵn?', note: 'Có → Claude Agent SDK, tự host' },
+        { kind: 'decision', label: 'Chỉ có tool tự định nghĩa?', note: 'Có → Tool Runner của SDK API' },
+        { kind: 'step', label: 'Vòng lặp thủ công', detail: 'Messages API, toàn quyền kiểm soát' },
+        { kind: 'step', label: 'Cấu hình tool, MCP, quyền', detail: 'allowed_tools tối thiểu, max_turns' },
+        { kind: 'step', label: 'Chạy thử và đo bằng eval', loopTo: 5, loopLabel: 'tinh chỉnh' },
+        { kind: 'end', label: 'Agent sẵn sàng triển khai' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Agent phân loại issue cho đội phát triển (Claude Agent SDK)',
+        html: `<p><strong>Bối cảnh:</strong> Một startup ở Đà Nẵng có repo nhận khoảng 40 issue mỗi ngày. Trưởng nhóm mất gần một giờ mỗi sáng chỉ để gắn label và hỏi thêm thông tin còn thiếu.</p>
+<p><strong>Giải pháp:</strong> Họ viết agent bằng Claude Agent SDK, kết nối MCP GitHub và chỉ cho phép 4 tool: <code>list_issues</code>, <code>get_issue</code>, <code>update_issue</code>, <code>add_issue_comment</code>. System prompt nhấn mạnh rằng nội dung issue là <em>dữ liệu</em>, không phải chỉ dẫn. Tham số <code>max_turns=20</code> giới hạn số vòng lặp.</p>
+<p><strong>Triển khai an toàn:</strong> Tuần đầu, agent chạy chế độ <em>dry-run</em>: chỉ in đề xuất label để người duyệt, không ghi lên GitHub. Khi tỉ lệ đúng đạt 95% trên 200 issue, họ mới cho agent tự ghi. Mọi thứ chạy trong GitHub Actions của công ty, token lưu trong Secrets.</p>`
+      },
+      {
+        title: 'Báo cáo doanh thu mỗi đêm (Managed Agents)',
+        html: `<p><strong>Bài toán:</strong> Một chuỗi bán lẻ muốn mỗi 6 giờ sáng có báo cáo doanh thu tổng hợp từ file CSV xuất ra lúc nửa đêm. Đội IT chỉ có 2 người và không muốn vận hành thêm server hay sandbox.</p>
+<p><strong>Vì sao chọn Managed Agents:</strong> Anthropic chạy vòng lặp agent <em>và</em> cung cấp container riêng cho mỗi session để agent chạy code phân tích file. Tính năng scheduled deployment cho phép chạy theo lịch, không cần tự dựng cron.</p>
+<p><strong>So sánh các lựa chọn khác:</strong></p>
+<ul>
+<li>Agent SDK: cũng làm được, nhưng đội phải tự host máy chạy và tự quản lý sandbox.</li>
+<li>Tool Runner: không có sẵn môi trường để chạy code phân tích file.</li>
+</ul>
+<p>Với đội nhỏ, lựa chọn “ít phải tự vận hành nhất” mới là đơn giản nhất.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Có 4 cách xây agent: vòng lặp thủ công, Tool Runner, Claude Agent SDK và Managed Agents.',
+        'Tool Runner chỉ tự chạy vòng lặp qua các tool bạn định nghĩa, và bạn tự host.',
+        'Agent SDK là “Claude Code dạng thư viện”: có sẵn Read, Edit, Bash, Grep, cùng subagent, hooks và permission; bạn tự host.',
+        'Managed Agents là cách duy nhất mà Anthropic lo cả harness lẫn hạ tầng sandbox, và hỗ trợ chạy theo lịch.',
+        'Luôn giới hạn allowed_tools ở mức tối thiểu và đặt max_turns; nên chạy dry-run trước khi cho agent ghi dữ liệu.'
+      ],
+      tips: [
+        'Hai câu hỏi thần chú: “Ai chạy vòng lặp? Ai host hạ tầng?”',
+        'Tool Runner khác Agent SDK: Runner là “người chạy vòng” cho tool của bạn, còn SDK là “cả chiếc Claude Code” đóng gói thành thư viện.',
+        'Thấy đề nói “không muốn vận hành”, “chạy theo lịch”, “sandbox do Anthropic host” thì chọn Managed Agents.',
+        'Thấy đề nói “đọc/sửa file, chạy lệnh trên server công ty” thì chọn Agent SDK.',
+        'Tên tool MCP có dạng mcp__server__tool; quên đưa vào allowed_tools thì agent không gọi được tool đó.'
+      ]
+    },
     sections: [
       {
         h: '1. Bốn cách xây agent',
@@ -692,6 +836,60 @@ asyncio.run(main())</code></pre>
       'Đánh giá agent bằng eval theo kết quả cuối',
       'Tối ưu chi phí theo đúng thứ tự đòn bẩy'
     ],
+    flow: {
+      title: 'Agent an toàn: giới hạn vòng, xem stop_reason, duyệt việc rủi ro',
+      steps: [
+        { kind: 'start', label: 'Nhận nhiệm vụ', detail: 'turn = 0, MAX_TURNS = 15' },
+        { kind: 'step', label: 'Gọi Messages API', detail: 'Log token, tool, stop_reason' },
+        { kind: 'decision', label: 'stop_reason bất thường?', note: 'refusal / max_tokens → dừng, báo người' },
+        { kind: 'decision', label: 'end_turn?', note: 'Có → kiểm chứng kết quả rồi kết thúc' },
+        { kind: 'decision', label: 'Tool nguy hiểm?', note: 'Có → chờ con người phê duyệt' },
+        { kind: 'step', label: 'Chạy tool an toàn', detail: 'Lỗi → tool_result is_error: true' },
+        { kind: 'step', label: 'Gửi mọi tool_result', detail: 'Một lượt user, turn += 1', loopTo: 1, loopLabel: 'vòng tiếp' },
+        { kind: 'end', label: 'Xong, hoặc dừng ở MAX_TURNS' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Agent hoàn tiền của sàn thương mại điện tử',
+        html: `<p><strong>Tình huống:</strong> Một sàn TMĐT dùng agent xử lý khiếu nại “hàng không đúng mô tả”. Agent có thể gọi tool <code>refund_order</code> để hoàn tiền thật.</p>
+<p><strong>Sự cố khi thử nghiệm:</strong> API thanh toán bị timeout. Agent gọi lại tool đó 37 lần trong một phiên vì mỗi lần nhận về kết quả mơ hồ.</p>
+<p><strong>Cách sửa:</strong></p>
+<ul>
+<li>Đặt <code>MAX_TURNS = 15</code>.</li>
+<li>Khi tool lỗi, trả về <code>is_error: true</code> kèm thông báo rõ: “Cổng thanh toán timeout, đừng thử lại, hãy báo nhân viên”.</li>
+<li>Tầng tool tự retry có backoff 2 lần.</li>
+<li>Mọi lần gọi <code>refund_order</code> trên 500.000đ đều cần nhân viên bấm duyệt.</li>
+</ul>
+<p><strong>Kết quả:</strong> không còn vòng lặp vô hạn. Mọi khoản hoàn tiền lớn đều có người chịu trách nhiệm, và log từng bước giúp truy lại mọi quyết định của agent.</p>`
+      },
+      {
+        title: 'Tối ưu chi phí trích xuất 200.000 hoá đơn mỗi đêm',
+        html: `<p><strong>Trước:</strong> Một công ty kế toán dịch vụ trích xuất hoá đơn bằng request realtime, dùng model mạnh ở effort cao, và thấy hoá đơn API tăng đều mỗi tháng.</p>
+<p><strong>Đi theo đúng thứ tự tối ưu:</strong></p>
+<ol>
+<li><strong>Tối ưu miễn phí trước:</strong> cache phần hướng dẫn và schema, cắt bớt token thừa trong input, và chuyển sang <strong>Batch API</strong> (giảm khoảng 50%) vì chỉ cần có kết quả trước 8 giờ sáng.</li>
+<li><strong>Rồi mới đánh đổi:</strong> chạy eval 500 hoá đơn có đáp án chuẩn với <code>effort</code> high, medium và low. Mức medium vẫn giữ độ chính xác 99%, nên họ giữ medium.</li>
+<li><strong>Đo đúng thứ:</strong> tính chi phí trên mỗi <em>hoá đơn trích xuất đúng</em>, không tính trên mỗi request, vì request rẻ mà phải chạy lại thì không thật sự rẻ.</li>
+</ol>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Agent chạy production cần có giới hạn: max_turns, timeout, và task budget (beta).',
+        'Kiểm tra stop_reason (refusal, max_tokens, pause_turn) trước khi đọc content.',
+        'Lỗi tool thì trả về is_error kèm hướng dẫn; lỗi tạm thời thì retry có backoff ở tầng tool.',
+        'Hành động không đảo ngược được cần con người phê duyệt; log từng bước để quan sát và debug.',
+        'Eval chấm kết quả cuối cùng và chạy nhiều lần; tối ưu chi phí theo thứ tự: miễn phí trước, đánh đổi sau.'
+      ],
+      tips: [
+        '“Giới – Kiểm – Duyệt – Log”: Giới hạn vòng, Kiểm stop_reason, Duyệt việc rủi ro, Log mọi bước.',
+        'Tối ưu chi phí như dọn nhà: vứt đồ thừa (cache, cắt token, Batch) trước, rồi mới bán bớt đồ tốt (giảm effort, đổi model).',
+        'Batch API nhớ là “chậm mà rẻ một nửa”, dành cho việc không cần realtime.',
+        'Bẫy đề thi: “đổi ngay sang model rẻ nhất” gần như luôn sai nếu chưa có eval.',
+        'Chấm agent theo đích đến (test có pass không), không theo con đường nó đi.'
+      ]
+    },
     sections: [
       {
         h: '1. Độ tin cậy',
@@ -933,6 +1131,57 @@ window.LESSONS.push(
       'Bật compaction và xử lý đúng compaction block',
       'Dùng context editing để xoá kết quả tool cũ và memory tool để nhớ qua phiên'
     ],
+    flow: {
+      title: 'Ba công cụ giữ context gọn: xoá, tóm tắt và ghi nhớ ra ngoài',
+      steps: [
+        { kind: 'start', label: 'Agent chạy phiên dài' },
+        { kind: 'decision', label: 'Nhiều kết quả tool cũ?', note: 'Có → context editing: clear_tool_uses' },
+        { kind: 'decision', label: 'Gần ngưỡng context?', note: 'Có → compaction tóm tắt phía server' },
+        { kind: 'step', label: 'Nối nguyên response.content', detail: 'Giữ compaction block cho lượt sau' },
+        { kind: 'decision', label: 'Cần nhớ qua nhiều phiên?', note: 'Có → memory tool ghi vào /memories' },
+        { kind: 'step', label: 'Handler chạy lệnh memory', detail: 'view · create · str_replace…', note: 'Chặn ../ ra ngoài /memories' },
+        { kind: 'step', label: 'Tiếp tục nhiệm vụ', loopTo: 1, loopLabel: 'mỗi lượt' },
+        { kind: 'end', label: 'Context gọn, không mất gì' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Agent hỗ trợ kỹ thuật chạy cả ca 8 tiếng',
+        html: `<p><strong>Vấn đề:</strong> Agent hỗ trợ IT nội bộ của một ngân hàng đọc log hệ thống qua tool. Mỗi lần gọi trả về 5.000–20.000 token, nên sau khoảng 2 tiếng context đầy và agent bắt đầu chậm, đắt, dễ quên yêu cầu ban đầu.</p>
+<p><strong>Cách xử lý:</strong></p>
+<ul>
+<li>Bật <strong>context editing</strong> (<code>clear_tool_uses_20250919</code>, beta <code>context-management-2025-06-27</code>) để xoá các log cũ đã phân tích xong.</li>
+<li>Bật <strong>compaction</strong> (beta <code>compact-2026-01-12</code>) để server tự tóm tắt lịch sử khi gần ngưỡng.</li>
+<li>Đội phát triển sửa một lỗi quan trọng: trước đó họ chỉ lưu <code>text</code> vào lịch sử, nên compaction block bị mất. Họ đổi sang nối nguyên <code>response.content</code>.</li>
+</ul>
+<p><strong>Kết quả:</strong> agent chạy trọn ca 8 tiếng. Kết luận quan trọng của mỗi sự cố được ghi vào memory, nên ca sau đọc lại được.</p>`
+      },
+      {
+        title: 'Trợ lý học tập nhớ điểm yếu của từng học viên',
+        html: `<p><strong>Bối cảnh:</strong> Một trung tâm luyện thi chứng chỉ muốn trợ lý nhớ được mỗi học viên đang yếu domain nào, dù mỗi buổi học là một phiên mới.</p>
+<p><strong>Giải pháp:</strong> Họ dùng memory tool <code>{"type": "memory_20250818", "name": "memory"}</code>, lưu theo thư mục riêng cho từng học viên. Đầu phiên, Claude tự <code>view /memories</code>. Khi phát hiện học viên sai nhiều câu về prompt caching, Claude <code>create</code> file <code>/memories/diem-yeu.md</code> để ghi lại.</p>
+<pre><code>{"command": "create",
+ "path": "/memories/diem-yeu.md",
+ "file_text": "- Hay nhầm thứ tự cache: nhớ tools → system → messages\n"}</code></pre>
+<p><strong>An toàn:</strong> handler từ chối mọi đường dẫn có <code>../</code> và không lưu số điện thoại hay email vào memory. File không được truy cập sau 90 ngày sẽ tự bị xoá.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Context editing xoá bớt kết quả tool cũ (clear_tool_uses_20250919, beta context-management-2025-06-27).',
+        'Compaction tóm tắt lịch sử ở phía server khi gần ngưỡng (beta compact-2026-01-12); luôn nối nguyên response.content vào lịch sử.',
+        'Memory tool (memory_20250818) chạy ở phía client: bạn tự viết handler cho view, create, str_replace, insert, delete, rename.',
+        'Handler memory phải giới hạn trong /memories, chặn ../ và không lưu thông tin nhạy cảm.',
+        'Với agent chạy dài, kết hợp cả ba: compaction giữ context nhỏ, memory giữ lại điều phải sống sót sau khi tóm tắt.'
+      ],
+      tips: [
+        'Nhớ “Xoá – Tóm – Ghi”: context editing xoá, compaction tóm, memory ghi ra ngoài.',
+        'Context editing như dọn bàn: vứt giấy nháp cũ. Compaction như viết biên bản cuộc họp. Memory như sổ tay mang theo sang hôm sau.',
+        'Bẫy đề thi: chỉ lưu text của response thì mất compaction block; phải lưu nguyên response.content.',
+        'Memory tool do Anthropic định nghĩa nhưng bạn tự chạy: không có input_schema, name bắt buộc là "memory".',
+        'Thấy đường dẫn chứa ../ trong lệnh memory thì phải chặn, đó là path traversal.'
+      ]
+    },
     sections: [
       {
         h: '1. Ba kỹ thuật, ba mục đích',
@@ -1184,6 +1433,59 @@ for message in runner:
       'Viết “bản giao việc” (delegation brief) rõ ràng cho subagent',
       'Cân nhắc chi phí, độ trễ, chất lượng và cách đánh giá hệ thống multi-agent'
     ],
+    flow: {
+      title: 'Orchestrator chia việc, workers chạy song song, tổng hợp có nguồn',
+      steps: [
+        { kind: 'start', label: 'Câu hỏi nghiên cứu lớn' },
+        { kind: 'step', label: 'Orchestrator lập kế hoạch', detail: 'Chia thành N câu hỏi con' },
+        { kind: 'step', label: 'Viết brief cho từng worker', detail: 'Mục tiêu, phạm vi, định dạng', note: 'Brief mơ hồ → kết quả lệch' },
+        { kind: 'step', label: 'Workers chạy song song', detail: 'Context riêng, model rẻ hơn', note: 'Mỗi worker trả tóm tắt có cấu trúc' },
+        { kind: 'decision', label: 'Đủ thông tin chưa?', note: 'Chưa → giao thêm câu hỏi con' },
+        { kind: 'step', label: 'Tổng hợp báo cáo', detail: 'Effort cao, trích nguồn', loopTo: 2, loopLabel: 'bổ sung' },
+        { kind: 'step', label: 'Kiểm chứng và eval', detail: 'Mỗi khẳng định đều có nguồn' },
+        { kind: 'end', label: 'Báo cáo có trích dẫn' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Nghiên cứu thị trường trà sữa tại 5 thành phố',
+        html: `<p><strong>Yêu cầu:</strong> Một thương hiệu F&amp;B muốn báo cáo về giá, đối thủ và xu hướng tại Hà Nội, Hải Phòng, Đà Nẵng, TP.HCM và Cần Thơ từ khoảng 40 nguồn. Một agent đơn lẻ đọc hết 40 nguồn thì bị tràn context và bỏ sót thông tin.</p>
+<p><strong>Kiến trúc:</strong> Orchestrator chạy model mạnh, effort cao, chia việc thành 5 worker theo thành phố. Mỗi worker nhận một brief rõ ràng:</p>
+<pre><code>Mục tiêu: giá trung bình 1 ly size M, 3 đối thủ lớn nhất
+Phạm vi: chỉ thành phố Đà Nẵng, dữ liệu từ 2025
+Định dạng: JSON {gia_tb, doi_thu[], nguon[]}
+Không làm: không so sánh với thành phố khác</code></pre>
+<p><strong>Kết quả:</strong> các worker chạy model nhanh hơn và song song, nên tổng thời gian giảm. Tổng số token tăng khoảng 3–4 lần, nhưng báo cáo đầy đủ và mọi số liệu đều có nguồn.</p>`
+      },
+      {
+        title: 'Khi nào KHÔNG nên dùng multi-agent',
+        html: `<p><strong>Tình huống:</strong> Cùng công ty đó muốn tóm tắt một báo cáo PDF 30 trang thành 1 trang. Một kỹ sư đề xuất dùng orchestrator với 5 worker, mỗi worker đọc 6 trang.</p>
+<p><strong>Phân tích:</strong></p>
+<ul>
+<li>30 trang vừa gọn trong context của một lần gọi API.</li>
+<li>Chia nhỏ còn làm mất mạch văn giữa các phần.</li>
+<li>Chi phí điều phối tăng mà chất lượng không tốt hơn.</li>
+</ul>
+<p><strong>Quyết định:</strong> dùng <strong>một lần gọi</strong>, gửi PDF kèm yêu cầu tóm tắt có cấu trúc.</p>
+<p><strong>Bài học cho kỳ thi:</strong> multi-agent chỉ đáng dùng khi việc <em>chia nhánh được</em> hoặc một agent sẽ <em>tràn context</em> vì phải đọc quá nhiều. “Nghe hiện đại” không phải là lý do chính đáng để chọn một kiến trúc tốn kém hơn.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Orchestrator–workers: agent chính lập kế hoạch và chia việc; các worker có context riêng và chạy song song.',
+        'Brief cho mỗi worker cần có mục tiêu, phạm vi, định dạng kết quả và những việc không được làm.',
+        'Worker có thể dùng model rẻ hơn hoặc effort thấp hơn; bước tổng hợp dùng effort cao.',
+        'Multi-agent tốn nhiều token hơn nhiều lần, chỉ đáng khi việc chia nhánh được hoặc một agent sẽ tràn context.',
+        'Kiểm chứng báo cáo cuối bằng nguồn trích dẫn và eval.'
+      ],
+      tips: [
+        'Brief nhớ “MPĐK”: Mục tiêu, Phạm vi, Định dạng, Không làm.',
+        'Orchestrator như tổng biên tập: giao bài cho phóng viên rồi tự biên tập bản cuối.',
+        'Câu vần: “Việc chia được, đọc quá nhiều, mới gọi thêm người; còn không, một mình là đủ.”',
+        'Bẫy đề thi: tóm tắt một tài liệu vừa context mà chọn multi-agent là sai.',
+        'Kết quả các worker lệch định dạng thì sửa brief và dùng structured output, không phải đổi model.'
+      ]
+    },
     sections: [
       {
         h: '1. Bài toán',

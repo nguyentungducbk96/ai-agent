@@ -20,6 +20,51 @@ window.LESSONS.push(
       'Đọc content block, stop_reason và usage',
       'Cấu hình retry, timeout và xử lý lỗi theo từng loại'
     ],
+    flow: {
+      title: 'Một request đi qua SDK, API rồi trả về content block và usage',
+      steps: [
+        { kind: 'start', label: 'Code gọi messages.create()', detail: 'model, max_tokens, system, messages' },
+        { kind: 'step', label: 'SDK đọc API key từ env', detail: 'ANTHROPIC_API_KEY, không ghi trong code', note: 'Key lộ → revoke ngay trên Console' },
+        { kind: 'step', label: 'POST /v1/messages', detail: 'Timeout mặc định 10 phút' },
+        { kind: 'decision', label: 'Lỗi 408/409/429/5xx?', note: 'Có → SDK tự retry (mặc định 2 lần)' },
+        { kind: 'step', label: 'Retry có backoff', loopTo: 2, loopLabel: 'gửi lại' },
+        { kind: 'step', label: 'Nhận response', detail: 'content[], stop_reason, usage', note: '400 → sửa request, không retry' },
+        { kind: 'step', label: 'Duyệt block theo type', detail: 'text / thinking / tool_use' },
+        { kind: 'end', label: 'Log usage và trả text' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Shop mỹ phẩm viết mô tả sản phẩm tự động',
+        html: `<p>Một shop mỹ phẩm ở TP.HCM có 1.200 sản phẩm, mỗi mô tả do nhân viên viết mất khoảng 15 phút. Team viết script Python gọi <code>messages.create()</code> với system prompt “copywriter mỹ phẩm, 80–120 từ, không hứa hẹn công dụng y tế”, còn thông số sản phẩm đi trong <code>messages</code>.</p>
+<p><strong>Trước:</strong> script ghi API key thẳng vào code rồi đẩy lên GitHub, và bị lộ key sau 2 ngày. <strong>Sau:</strong> key được đặt trong biến môi trường, còn hàm <code>ask()</code> ghi <code>usage</code> ra file <code>logs.jsonl</code>. Nhờ log, team biết mỗi mô tả tốn khoảng 400 token input và 250 token output, nên ước tính được chi phí cho cả 1.200 sản phẩm trước khi chạy.</p>
+<p>Có lần mạng chập chờn, SDK tự retry khi gặp lỗi 429 và 529, script không bị dừng giữa chừng. Kết quả: xong trong một buổi chiều thay vì 3 tuần, nhân viên chỉ còn phải duyệt và sửa khoảng 10% số mô tả.</p>`
+      },
+      {
+        title: 'Ứng dụng đặt lịch spa bị cắt câu trả lời',
+        html: `<p>Chatbot đặt lịch của một chuỗi spa ở Hà Nội thỉnh thoảng trả lời cụt lủn kiểu “Chị có thể chọn khung giờ 9h, 10h và”. Dev kiểm tra log thì thấy <code>stop_reason = "max_tokens"</code>, vì trước đó đã đặt <code>max_tokens=100</code> cho “tiết kiệm”.</p>
+<p><strong>Cách sửa:</strong> tăng <code>max_tokens</code> lên 1024. Độ dài câu trả lời được kiểm soát bằng chỉ dẫn trong system prompt (“tối đa 3 câu”), không dùng <code>max_tokens</code> để cắt. Code cũng in cảnh báo mỗi khi gặp <code>max_tokens</code> để phát hiện sớm.</p>
+<pre><code>if r.stop_reason == "max_tokens":
+    logger.warning("Output bị cắt: %s", r.id)</code></pre>
+<p>Bài học: <code>max_tokens</code> là trần an toàn chứ không phải công cụ điều chỉnh độ dài. Chi phí chỉ tính trên số token thực sự sinh ra, nên đặt trần cao hơn không làm tốn thêm tiền.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Mọi thứ đi qua một endpoint: POST /v1/messages với model, max_tokens, messages (system tuỳ chọn).',
+        'Response gồm content (danh sách block), stop_reason và usage; luôn kiểm tra block.type trước khi đọc.',
+        'SDK tự retry 408/409/429/5xx và lỗi kết nối; lỗi 400 phải sửa request.',
+        'API key để trong biến môi trường, tuyệt đối không commit.',
+        'Log usage mỗi request để tính chi phí thật.'
+      ],
+      tips: [
+        'Nhớ “M-M-M”: Model, Max_tokens, Messages là 3 trường bắt buộc.',
+        '4xx là lỗi của mình (trừ 408/409/429), 5xx là lỗi của server: gặp 5xx thì retry, gặp 400 thì sửa code.',
+        'stop_reason giống đèn giao thông: end_turn là xanh, max_tokens là vàng (bị cắt), tool_use là “rẽ phải chạy tool”.',
+        'max_tokens là trần nhà chứ không phải chiều cao người: đặt cao không tốn thêm tiền.',
+        'Bẫy đề thi: “retry mọi lỗi” là sai, vì 400 retry bao nhiêu lần vẫn lỗi.'
+      ]
+    },
     sections: [
       {
         h: '1. Chuẩn bị',
@@ -300,6 +345,52 @@ asyncio.run(main())</code></pre>
       'Stream output theo thời gian thực',
       'Hiểu vì sao phải nối nguyên response.content vào lịch sử'
     ],
+    flow: {
+      title: 'Mỗi lượt: thêm user, gọi API, stream chữ, nối nguyên content',
+      steps: [
+        { kind: 'start', label: 'Người dùng gõ câu hỏi' },
+        { kind: 'step', label: 'Append lượt user', detail: 'history.append({role: user, ...})' },
+        { kind: 'step', label: 'messages.stream(history)', detail: 'Gửi lại TOÀN BỘ lịch sử', note: 'API stateless, không tự nhớ' },
+        { kind: 'step', label: 'Nhận sự kiện SSE', detail: 'text_stream in từng đoạn chữ', note: 'Lặp tới khi message_stop' },
+        { kind: 'step', label: 'get_final_message()', detail: 'Message hoàn chỉnh + usage' },
+        { kind: 'step', label: 'Append nguyên content', detail: 'role assistant, giữ mọi block', note: 'Không chỉ lấy text' },
+        { kind: 'decision', label: 'Lịch sử quá dài?', note: 'Có → tóm tắt / compaction' },
+        { kind: 'end', label: 'Chờ câu hỏi tiếp theo' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Trợ lý tư vấn bảo hiểm trên Zalo OA',
+        html: `<p>Một công ty bảo hiểm làm chatbot tư vấn trên Zalo OA. Bản đầu chỉ gửi câu hỏi mới nhất lên API, nên khi khách hỏi “gói đó phí bao nhiêu?”, Claude không biết “gói đó” là gói nào, vì API không lưu hội thoại.</p>
+<p><strong>Sửa:</strong> lưu <code>history</code> theo từng khách trong Redis, mỗi lượt gửi lại toàn bộ lịch sử và nối nguyên <code>final.content</code> vào lịch sử. Thêm streaming nên chữ bắt đầu hiện ra sau khoảng 1 giây, thay vì khách phải chờ 8 giây mới thấy cả đoạn.</p>
+<p><strong>Vấn đề tiếp theo:</strong> khách nói chuyện 60 lượt khiến mỗi request tốn hơn 30.000 token input. Team đặt ngưỡng: quá 20 lượt thì tóm tắt 10 lượt đầu. Chi phí trung bình mỗi hội thoại giảm khoảng 40%, còn thông tin quan trọng (tuổi, gói quan tâm) được giữ trong bản tóm tắt.</p>`
+      },
+      {
+        title: 'Công cụ viết báo cáo nội bộ bị timeout',
+        html: `<p>Phòng tài chính dùng script yêu cầu Claude viết báo cáo quý dài khoảng 6.000 từ. Khi gọi không streaming với <code>max_tokens</code> rất lớn, SDK báo phải dùng streaming, vì request dài dễ vượt timeout HTTP.</p>
+<p><strong>Sửa:</strong> chuyển sang <code>client.messages.stream(...)</code> và dùng <code>get_final_message()</code> để lấy kết quả hoàn chỉnh. Cách này không cần xử lý từng sự kiện, vẫn nhận đủ <code>usage</code> và <code>stop_reason</code>.</p>
+<pre><code>with client.messages.stream(model="claude-opus-5", max_tokens=64000,
+                            messages=msgs) as s:
+    final = s.get_final_message()</code></pre>
+<p>Kết quả: không còn lỗi timeout, và giá vẫn như cũ vì streaming không thay đổi cách tính tiền. Sau đó team làm thêm một bước: in từng đoạn chữ ra giao diện nội bộ để người duyệt đọc trước phần đầu báo cáo trong lúc Claude vẫn đang viết phần sau. Nhờ vậy vòng duyệt sửa rút từ khoảng 40 phút xuống còn khoảng 25 phút mỗi báo cáo. Team cũng ghi lại <code>usage.output_tokens</code> của từng báo cáo để biết báo cáo nào dài bất thường và cần chia nhỏ yêu cầu.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'API không lưu trạng thái: mỗi lượt phải gửi lại toàn bộ lịch sử.',
+        'Luôn nối nguyên response.content (không chỉ text) vào lịch sử với role assistant.',
+        'Các lượt phải xen kẽ user → assistant.',
+        'Streaming cho người dùng thấy chữ sớm và tránh timeout với output dài; giá không đổi.',
+        'Lịch sử dài thì đắt: tóm tắt, compaction hoặc context editing, và giữ lịch sử chỉ nối thêm để cache hiệu quả.'
+      ],
+      tips: [
+        'API như người mất trí nhớ ngắn hạn: mỗi lần gặp phải kể lại từ đầu.',
+        '“Nối nguyên hộp, đừng bóc quà”: nối cả content, đừng chỉ lấy .text.',
+        'Stream như xem phim online: xem được ngay, không phải tải hết mới xem, và giá vé như nhau.',
+        'get_final_message() giống nút “tải về khi xem xong”: vừa stream vừa có bản đầy đủ.',
+        'Bẫy đề thi: “streaming rẻ hơn” là sai.'
+      ]
+    },
     sections: [
       {
         h: '1. Hội thoại nhiều lượt',
@@ -541,6 +632,49 @@ print(f"Không stream: người dùng chờ {plain_total:.1f}s mới thấy gì"
       'Bật strict tool use để tham số tool luôn hợp lệ',
       'Gửi ảnh và PDF cho Claude phân tích'
     ],
+    flow: {
+      title: 'Schema chặt ở đầu vào nên nhận được JSON hợp lệ ở đầu ra',
+      steps: [
+        { kind: 'start', label: 'Định nghĩa schema', detail: 'Pydantic hoặc JSON Schema', note: 'additionalProperties: false + required' },
+        { kind: 'step', label: 'Chuẩn bị content blocks', detail: 'document (PDF) / image + text' },
+        { kind: 'step', label: 'Gọi messages.parse()', detail: 'hoặc create() + output_config.format' },
+        { kind: 'step', label: 'Claude sinh output', detail: 'Bị ràng buộc đúng schema' },
+        { kind: 'decision', label: 'stop_reason = end_turn?', note: 'max_tokens → JSON bị cắt, tăng trần' },
+        { kind: 'step', label: 'Đọc parsed_output', detail: 'Object đã được validate' },
+        { kind: 'end', label: 'Ghi vào database / hệ thống' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Kế toán nhập hoá đơn VAT từ PDF',
+        html: `<p>Một công ty logistics mỗi tháng nhận khoảng 3.000 hoá đơn VAT dạng PDF từ nhà cung cấp. Trước đây 2 kế toán nhập tay mất khoảng 5 ngày và hay gõ nhầm mã số thuế.</p>
+<p><strong>Giải pháp:</strong> định nghĩa Pydantic <code>Invoice</code> với các trường mã số thuế, ngày, tổng tiền và danh sách dòng hàng. Gửi PDF dạng <code>document</code> block rồi gọi <code>messages.parse(..., output_format=Invoice)</code>. Output luôn đúng schema nên ghi thẳng vào ERP được, không cần regex hay kiểm tra “JSON có hợp lệ không”.</p>
+<p><strong>Kiểm soát chất lượng:</strong> code tự kiểm tra tổng các dòng hàng có khớp tổng tiền không. Hoá đơn nào lệch thì đẩy sang hàng đợi cho người duyệt, chiếm khoảng 4%. Thời gian xử lý còn 1 ngày, lỗi mã số thuế gần như không còn.</p>`
+      },
+      {
+        title: 'Hỗ trợ kỹ thuật đọc ảnh chụp màn hình lỗi',
+        html: `<p>Khách hàng của một phần mềm bán hàng thường gửi ảnh chụp màn hình lỗi qua email. Hệ thống gửi ảnh cho Claude dưới dạng <code>image</code> block, kèm schema <code>{error_message, likely_cause, fix_steps[]}</code> trong <code>output_config.format</code>.</p>
+<pre><code>output_config={"format": {"type": "json_schema", "schema": ERROR_SCHEMA}}</code></pre>
+<p>JSON trả về được dùng để tự tạo ticket với tiêu đề là <code>error_message</code> và gợi ý các bước khắc phục cho nhân viên. Nhân viên hỗ trợ không phải gõ lại nội dung lỗi từ ảnh, nên thời gian phản hồi đầu tiên giảm từ khoảng 2 giờ xuống 15 phút.</p>
+<p><strong>Lưu ý:</strong> <code>media_type</code> phải khớp với định dạng ảnh (<code>image/png</code>, <code>image/jpeg</code>). Không cần trích dẫn nguồn ở đây vì citations không dùng chung được với structured outputs.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'JSON outputs: output_config.format với type json_schema; tham số output_format cũ trên create() đã deprecated.',
+        'Python: messages.parse(output_format=PydanticModel) rồi đọc response.parsed_output.',
+        'Strict tool use: "strict": true trên định nghĩa tool để input khớp schema.',
+        'Schema cần additionalProperties: false và danh sách required.',
+        'Ảnh dùng image block, PDF dùng document block (đặt trước text); file dùng nhiều lần thì upload qua Files API.'
+      ],
+      tips: [
+        'Nhớ cặp “format cho câu trả lời, strict cho tool”.',
+        'Structured output như biểu mẫu có ô sẵn: Claude chỉ được điền vào đúng ô.',
+        'PDF thì “document”, ảnh thì “image”, và luôn đặt tài liệu trước câu hỏi.',
+        'Bẫy đề thi: prefill “{” hoặc viết “CHỈ TRẢ JSON” bằng chữ hoa đều không phải cách đúng trên model mới.',
+        'Trường không có dữ liệu thì để None, không để model tự bịa.'
+      ]
+    },
     sections: [
       {
         h: '1. Structured outputs',
@@ -822,6 +956,52 @@ for b in r.content:
       'Tự viết vòng lặp agent thủ công',
       'Xử lý nhiều tool gọi song song và lỗi tool'
     ],
+    flow: {
+      title: 'Tool use: Claude xin gọi tool, code của bạn chạy và trả kết quả',
+      steps: [
+        { kind: 'start', label: 'Gửi messages + tools', detail: 'name, description, input_schema' },
+        { kind: 'step', label: 'Claude trả response', detail: 'Có thể chứa nhiều tool_use block' },
+        { kind: 'decision', label: 'stop_reason = tool_use?', note: 'end_turn → đọc text, kết thúc' },
+        { kind: 'step', label: 'Code của bạn chạy tool', detail: 'Chạy song song được', note: 'Claude không tự chạy client tool' },
+        { kind: 'step', label: 'Gom mọi tool_result', detail: 'tool_use_id khớp; lỗi → is_error' },
+        { kind: 'step', label: 'Append assistant + 1 lượt user', detail: 'Tất cả kết quả trong MỘT lượt', loopTo: 1, loopLabel: 'gọi lại API' },
+        { kind: 'end', label: 'Trả lời cuối cho người dùng', note: 'Luôn có giới hạn số vòng' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Chatbot tra đơn hàng của sàn thương mại điện tử',
+        html: `<p>Khách hỏi: “Đơn A123 và B456 của tôi tới đâu rồi?”. Claude trả về <strong>2 khối <code>tool_use</code></strong> gọi <code>lookup_order</code> trong cùng một response. Code chạy 2 truy vấn song song rồi trả cả 2 <code>tool_result</code> trong <strong>một</strong> lượt user.</p>
+<p><strong>Lỗi team từng mắc:</strong> gửi mỗi kết quả trong một lượt riêng. Sau một thời gian, Claude dần chuyển sang gọi tool tuần tự từng cái, nên thời gian trả lời tăng gấp đôi.</p>
+<p><strong>Tình huống lỗi:</strong> đơn B456 không tồn tại. Code trả <code>is_error: true</code> kèm thông báo “Không tìm thấy B456. Mã đơn có dạng 1 chữ cái và 3 số”. Claude báo trạng thái đơn A123 và lịch sự hỏi lại khách mã đơn thứ hai, thay vì tự bịa ra một trạng thái.</p>`
+      },
+      {
+        title: 'Agent đặt phòng họp bị lặp vô hạn',
+        html: `<p>Một startup làm agent đặt phòng họp có tool <code>book_room</code>. Một hôm API lịch của Google bị lỗi, tool liên tục trả lỗi, và agent thử lại 140 lần trong 10 phút, đốt khoảng 2 triệu token.</p>
+<p><strong>Sửa:</strong> thêm <code>MAX_TURNS = 10</code>, retry có backoff ở tầng tool, và thông báo lỗi rõ ràng (“Dịch vụ lịch tạm thời không khả dụng, hãy báo người dùng thử lại sau”). Sau khi vượt giới hạn, agent dừng và báo người dùng.</p>
+<pre><code>for turn in range(MAX_TURNS):
+    ...
+else:
+    raise RuntimeError("Vượt giới hạn vòng lặp")</code></pre>
+<p>Bài học: agent chạy production <strong>luôn</strong> phải có giới hạn số vòng lặp, timeout và log cho từng lần gọi tool. Team còn đặt cảnh báo khi một hội thoại vượt 50.000 token để phát hiện sớm những vòng lặp bất thường như lần sự cố này.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Tool = name + description + input_schema; description là prompt quyết định khi nào dùng tool.',
+        'stop_reason = tool_use thì code của bạn chạy tool, gửi tool_result với tool_use_id khớp, rồi lặp lại.',
+        'Nhiều tool_use trong một response thì trả tất cả tool_result trong MỘT lượt user.',
+        'Tool lỗi thì trả is_error: true kèm thông báo có hướng dẫn, không bỏ qua.',
+        'Tool Runner (beta) tự chạy vòng lặp; vòng lặp thủ công cho toàn quyền kiểm soát. Luôn có giới hạn số vòng.'
+      ],
+      tips: [
+        'Nhớ “Xin – Làm – Báo”: Claude xin (tool_use), bạn làm (chạy tool), bạn báo lại (tool_result).',
+        '“Một khay, nhiều món”: bao nhiêu tool_result cũng bưng ra một lượt user.',
+        'Lỗi tool như biển báo công trường: ghi rõ “đường cấm, đi lối kia” để Claude tự đổi hướng.',
+        'Client tool chạy ở máy bạn, server tool (web search, code execution) chạy ở Anthropic.',
+        'Bẫy đề thi: “Claude tự chạy tool của bạn” là sai.'
+      ]
+    },
     sections: [
       {
         h: '1. Tool use hoạt động thế nào',
@@ -1096,6 +1276,51 @@ messages.append({"role": "user", "content": results})  # MỘT lượt chứa t�
       'Upload file một lần và dùng lại bằng file_id qua Files API',
       'Kết hợp batch với prompt caching'
     ],
+    flow: {
+      title: 'Batch: đếm token, gửi lô, chờ xử lý, lấy kết quả theo custom_id',
+      steps: [
+        { kind: 'start', label: 'Chuẩn bị N request', detail: 'Mỗi request có custom_id riêng' },
+        { kind: 'step', label: 'count_tokens ước tính', detail: 'Tính chi phí trước khi chạy' },
+        { kind: 'step', label: 'Upload file dùng chung', detail: 'files.upload → file_id', note: 'Không phải gửi lại base64 nhiều lần' },
+        { kind: 'step', label: 'batches.create(requests)', detail: 'Giá khoảng 50% so với gọi thường' },
+        { kind: 'decision', label: 'processing_status = ended?', note: 'Chưa → chờ rồi retrieve lại' },
+        { kind: 'step', label: 'Chờ rồi kiểm tra lại', loopTo: 4, loopLabel: 'poll lại' },
+        { kind: 'step', label: 'Đọc results()', detail: 'succeeded / errored / expired', note: 'Kết quả không theo thứ tự gửi' },
+        { kind: 'end', label: 'Ghép kết quả theo custom_id' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Phân loại 200.000 đánh giá sản phẩm mỗi đêm',
+        html: `<p>Một sàn thương mại điện tử cần gán cảm xúc và chủ đề cho khoảng 200.000 đánh giá mỗi ngày. Không ai cần kết quả ngay lập tức, chỉ cần có trước 8 giờ sáng để đưa lên dashboard.</p>
+<p><strong>Trước:</strong> chạy 200.000 request realtime, hay bị rate limit và tốn chi phí đầy đủ. <strong>Sau:</strong> mỗi đêm gửi các lô qua <code>messages.batches.create</code>, mỗi request có <code>custom_id</code> là mã đánh giá. System prompt chung được đặt <code>cache_control</code> để tiết kiệm thêm. Buổi sáng chỉ cần đọc <code>results()</code> và ghép kết quả theo <code>custom_id</code>.</p>
+<p>Chi phí giảm khoảng một nửa và không còn lỗi 429. Có lần một dev ghép kết quả theo thứ tự trong danh sách, khiến nhãn bị gán lệch sang đánh giá khác. Từ đó team luôn ghép theo <code>custom_id</code>.</p>`
+      },
+      {
+        title: 'Dùng lại một hợp đồng mẫu 80 trang cho nhiều câu hỏi',
+        html: `<p>Phòng pháp chế có một hợp đồng khung 80 trang và phải trả lời khoảng 50 câu hỏi về nó. Nếu mỗi request gửi lại PDF dạng base64, payload rất nặng và chậm.</p>
+<p><strong>Cách làm:</strong> upload một lần bằng <code>client.files.upload(...)</code> để lấy <code>file_id</code>, sau đó tham chiếu bằng <code>{"type": "document", "source": {"type": "file", "file_id": ...}}</code>. Trước khi chạy cả loạt, dùng <code>messages.count_tokens</code> đếm token của một request mẫu để ước tính chi phí và báo cáo cho trưởng phòng.</p>
+<pre><code>n = client.messages.count_tokens(model="claude-opus-5", messages=msgs)
+print(n.input_tokens)</code></pre>
+<p>Kết quả: request nhẹ hơn và chi phí được dự báo trước, không còn bất ngờ khi xem hoá đơn cuối tháng. Khi hợp đồng khung có phiên bản mới, team upload file mới để lấy <code>file_id</code> mới rồi chạy lại cả bộ 50 câu hỏi, nên so sánh được câu trả lời giữa hai phiên bản mà không phải chỉnh lại code.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'count_tokens đếm token input trước khi gửi để ước tính chi phí; dùng nó, không dùng tiktoken.',
+        'Message Batches: gửi nhiều request bất đồng bộ, giá khoảng 50%, hợp với việc không cần realtime.',
+        'Poll processing_status cho tới khi là ended, rồi đọc results(); mỗi kết quả có type succeeded / errored / canceled / expired.',
+        'Kết quả về không theo thứ tự: luôn ghép theo custom_id.',
+        'Files API: upload một lần lấy file_id, dùng lại trong nhiều request (client.files.*, không cần beta).'
+      ],
+      tips: [
+        'Batch như gửi đồ giặt ở tiệm: rẻ hơn, nhưng sáng mai mới lấy.',
+        '“Có tên mới nhận được đồ”: custom_id là phiếu nhận đồ giặt.',
+        'Đếm trước, tiêu sau: count_tokens trước mỗi đợt chạy lớn.',
+        'Files API như Google Drive: upload một lần, gửi link nhiều lần.',
+        'Bẫy đề thi: chatbot cần trả lời ngay thì KHÔNG dùng Batch.'
+      ]
+    },
     sections: [
       {
         h: '1. Đếm token trước khi gửi',

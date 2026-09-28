@@ -19,6 +19,56 @@ window.LESSONS.push(
       'Viết CLAUDE.md hiệu quả ở cấp project và user',
       'Dùng plan mode, memory và quản lý context trong phiên'
     ],
+    flow: {
+      title: 'Mỗi phiên, Claude Code nạp ngữ cảnh trước rồi mới làm việc',
+      steps: [
+        { kind: 'start', label: 'Mở claude trong thư mục repo' },
+        { kind: 'step', label: 'Gộp settings', detail: 'managed > CLI > local > project > user', note: 'Quyết định quyền và biến môi trường' },
+        { kind: 'step', label: 'Nạp CLAUDE.md', detail: 'managed → user → project → CLAUDE.local', note: 'Thư mục con: nạp khi đọc file ở đó' },
+        { kind: 'step', label: 'Kết nối MCP, nạp mô tả skill', detail: 'Rồi subagent, rồi hook SessionStart' },
+        { kind: 'step', label: 'Khám phá: đọc file liên quan', detail: 'Dùng @duong/dan để chỉ đúng file' },
+        { kind: 'decision', label: 'Thay đổi lớn?', note: 'Có → plan mode (Shift+Tab), duyệt kế hoạch' },
+        { kind: 'step', label: 'Sửa code từng bước nhỏ' },
+        { kind: 'step', label: 'Chạy test, lint, xem diff', loopTo: 6, loopLabel: 'sai thì sửa' },
+        { kind: 'end', label: 'Commit, cập nhật CLAUDE.md' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Team fintech 6 người ở Hà Nội: từ “nhắc lại mỗi ngày” sang CLAUDE.md 30 dòng',
+        html: `<p><strong>Trước:</strong> mỗi sáng dev mở Claude Code và phải gõ lại “dùng pnpm, không dùng npm; test tích hợp cần Docker chạy; tiền tệ luôn lưu bằng số nguyên đơn vị đồng”. Ai quên nhắc thì Claude chạy <code>npm install</code>, sinh <code>package-lock.json</code> lạ và PR bị review trả về. Trung bình mỗi tuần mất khoảng 3 giờ cho những lỗi lặp lại kiểu này.</p>
+<p><strong>Sau:</strong> team chạy <code>/init</code>, rồi cắt bản nháp còn 30 dòng, chỉ giữ điều không hiển nhiên:</p>
+<pre><code>## Lệnh
+- Cài đặt: pnpm install   (KHÔNG dùng npm)
+- Test tích hợp: docker compose up -d rồi pnpm test:int
+## Quy ước
+- Tiền luôn là số nguyên (đồng), không dùng float</code></pre>
+<p>File được commit, nên người mới vào team cũng có ngay. Mỗi lần Claude lặp lại một lỗi, reviewer thêm đúng một dòng vào CLAUDE.md thay vì nhắc miệng. Sau 1 tháng, số PR bị trả vì sai quy ước giảm từ khoảng 8 xuống 1.</p>`
+      },
+      {
+        title: 'Freelancer ở Đà Nẵng: plan mode cứu một buổi refactor',
+        html: `<p>Chị Lan nhận yêu cầu tách module thanh toán khỏi một dự án Laravel cũ 40.000 dòng. Lần đầu, chị gõ thẳng “tách module thanh toán ra service riêng”. Claude sửa 23 file một mạch, trong đó có cả migration, và test hỏng hàng loạt. Chị phải <code>git reset</code> lại và mất nửa buổi chiều.</p>
+<p>Lần hai, chị bật <strong>plan mode</strong> (Shift+Tab) và yêu cầu “đọc các file liên quan tới payment rồi lập kế hoạch, chưa sửa gì”. Kế hoạch liệt kê 4 bước, 11 file, và nói rõ sẽ chạy <code>php artisan test --filter=Payment</code> sau mỗi bước. Chị chỉnh một điểm (“không đụng migration, tạo migration mới”) rồi mới cho chạy.</p>
+<p>Kết quả: xong trong 50 phút, mỗi bước có test xanh, diff dễ review. Bài học: <strong>duyệt kế hoạch rẻ hơn rất nhiều so với sửa code sai</strong>, và luôn cho Claude một cách tự kiểm tra (lệnh test) trước khi bắt đầu.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Claude Code là agent lập trình: đọc code, chạy lệnh, sửa file, dùng git và MCP.',
+        'Luồng hiệu quả: khám phá → lập kế hoạch → thực hiện từng bước → kiểm chứng.',
+        'CLAUDE.md nạp theo thứ tự managed → user (~/.claude/CLAUDE.md) → project (./CLAUDE.md hoặc ./.claude/CLAUDE.md) → CLAUDE.local.md; thư mục con nạp khi cần.',
+        'Chỉ ghi điều không hiển nhiên: lệnh build/test, quy ước, bẫy của dự án.',
+        'Quản lý context: /clear khi đổi việc, /compact khi hội thoại dài, @file để chỉ đúng file.'
+      ],
+      tips: [
+        'Nhớ “KHTK”: Khám phá – Hoạch định – Thực hiện – Kiểm chứng.',
+        'CLAUDE.md như sổ bàn giao cho đồng nghiệp mới: ngắn, đúng, không kể lại những gì đọc code là biết.',
+        'Mỗi dòng CLAUDE.md tự hỏi: “Xoá đi thì Claude có làm sai không?” Không → xoá.',
+        '@import trong CLAUDE.md: viết @duong/dan, tối đa 4 tầng lồng nhau.',
+        'Claude lặp lại một lỗi = thiếu một dòng trong CLAUDE.md.',
+        'Bẫy đề thi: CLAUDE.md là chỉ dẫn (model có thể bỏ qua); việc phải xảy ra 100% thì dùng hook.'
+      ]
+    },
     sections: [
       {
         h: '1. Claude Code là gì',
@@ -204,17 +254,67 @@ Trang học chứng chỉ Claude (HTML/CSS/JS thuần, không build step) trong 
       'Viết rule allow / ask / deny cho tool và lệnh Bash',
       'Chọn permission mode phù hợp'
     ],
+    flow: {
+      title: 'Mỗi lần gọi tool đều qua cửa kiểm tra quyền, deny luôn thắng',
+      steps: [
+        { kind: 'start', label: 'Claude muốn gọi một tool' },
+        { kind: 'decision', label: 'Hook PreToolUse cho qua?', note: 'Có thể chặn, sửa input, tự quyết quyền' },
+        { kind: 'step', label: 'Gộp rule từ các file settings', detail: 'managed, CLI, local, project, user', note: 'Danh sách gộp lại, rule chặt nhất thắng' },
+        { kind: 'decision', label: 'Khớp rule deny?', note: 'Có → chặn, Claude nhận lý do' },
+        { kind: 'decision', label: 'Khớp rule ask?', note: 'Có → hỏi người dùng (hook PermissionRequest)' },
+        { kind: 'decision', label: 'Khớp rule allow?', note: 'Không → xử lý theo permission mode' },
+        { kind: 'step', label: 'Tool chạy', detail: 'vd. Bash(npm run test:*)' },
+        { kind: 'end', label: 'Kết quả trả về cho Claude' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Startup edtech ở TP.HCM: chặn Claude đọc file .env của production',
+        html: `<p><strong>Tình huống:</strong> repo có file <code>.env.production</code> (dev để local để debug) chứa khoá thanh toán VNPay. Một dev nhờ Claude “tìm lý do thanh toán lỗi”, và Claude đọc luôn file .env để xem cấu hình. Khoá lọt vào hội thoại và log phiên làm việc.</p>
+<p><strong>Khắc phục:</strong> tech lead thêm rule vào <code>.claude/settings.json</code> và commit cho cả team:</p>
+<pre><code>"permissions": {
+  "deny": ["Read(./.env*)", "Bash(cat .env*)"],
+  "ask":  ["Bash(git push:*)"],
+  "allow": ["Bash(pnpm test:*)", "Bash(git diff:*)"]
+}</code></pre>
+<p>Từ đó Claude bị chặn đọc mọi file <code>.env*</code> và tự chuyển sang đọc <code>config/payment.ts</code>. Lệnh test chạy không cần hỏi nên dev bấm “cho phép” ít hơn khoảng 70%, còn <code>git push</code> vẫn luôn hỏi. Khoá cũ được thu hồi và cấp lại ngay trong ngày.</p>`
+      },
+      {
+        title: 'Công ty outsource 200 dev: managed settings cho cả tổ chức',
+        html: `<p><strong>Vấn đề:</strong> khách hàng Nhật yêu cầu không được gửi mã nguồn tới dịch vụ bên thứ ba ngoài danh sách đã duyệt. Nhưng mỗi dev tự cài MCP server theo ý thích, có người cài cả server upload file lên cloud cá nhân.</p>
+<p><strong>Giải pháp:</strong> bộ phận IT phát hành <strong>managed settings</strong> qua công cụ quản lý máy. File này có ưu tiên cao nhất, người dùng không ghi đè được. Trong đó chỉ cho phép các MCP server đã duyệt, deny các lệnh nguy hiểm như <code>Bash(curl:*)</code> tới domain lạ, và bật log.</p>
+<p><strong>Kết quả:</strong> dev vẫn tự do thêm rule <em>allow</em> cho lệnh test trong <code>settings.local.json</code>, nhưng không thể bỏ các rule <em>deny</em> của công ty. Khi audit, công ty chứng minh được chính sách áp dụng đồng nhất cho 200 máy. Đây đúng là dạng câu “chọn nơi đặt cấu hình” rất hay gặp trong đề thi.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Thứ tự ưu tiên settings: managed (tổ chức) > --settings (dòng lệnh) > local (.claude/settings.local.json) > project (.claude/settings.json) > user (~/.claude/settings.json).',
+        'Rule gồm allow / ask / deny; danh sách được gộp từ mọi tầng và rule chặt nhất thắng: deny > ask > allow.',
+        'Hook PreToolUse chạy trước kiểm tra quyền thông thường; nếu không chặn thì mới xét rule.',
+        'Tool MCP có tên dạng mcp__server__tool, dùng được trong rule như tool thường.',
+        'Permission mode (default, acceptEdits, plan…) chọn theo mức rủi ro của môi trường.',
+        'Chặn đọc secret bằng deny Read(...) là lớp bảo vệ thêm, ngoài .gitignore.'
+      ],
+      tips: [
+        '“Cấm thắng cho” – deny luôn thắng allow, không cần nhớ thứ tự dòng trong file.',
+        'Managed = “luật công ty”, project = “nội quy team”, local = “ghi chú riêng”, user = “thói quen cá nhân”.',
+        'Allow lệnh chỉ đọc, ask lệnh ghi ra ngoài, deny lệnh phá huỷ.',
+        '.gitignore chặn commit, deny Read chặn Claude đọc – hai việc khác nhau.',
+        'Bẫy đề thi: “cả công ty, người dùng không ghi đè được” → managed settings, không phải CLAUDE.md.'
+      ]
+    },
     sections: [
       {
         h: '1. Các file settings',
         html: `<div class="table-wrap"><table>
 <tr><th>File</th><th>Phạm vi</th></tr>
 <tr><td>Managed settings (do IT/tổ chức cấp)</td><td>Ưu tiên cao nhất, người dùng không ghi đè được</td></tr>
+<tr><td>Tham số dòng lệnh <code>--settings</code></td><td>Chỉ cho lần chạy đó</td></tr>
 <tr><td><code>.claude/settings.local.json</code></td><td>Project, chỉ bạn (không commit)</td></tr>
 <tr><td><code>.claude/settings.json</code></td><td>Project, commit cho cả team</td></tr>
 <tr><td><code>~/.claude/settings.json</code></td><td>User, mọi project</td></tr>
 </table></div>
-<p>Thiết lập cụ thể hơn ghi đè thiết lập chung hơn; rule <code>deny</code> luôn thắng <code>allow</code>.</p>`
+<p>Thứ tự ưu tiên: managed &gt; <code>--settings</code> &gt; local &gt; project &gt; user. Riêng danh sách permission được <strong>gộp</strong> từ mọi tầng và rule chặt nhất thắng: <code>deny</code> &gt; <code>ask</code> &gt; <code>allow</code>.</p>`
       },
       {
         h: '2. Permission rules',
@@ -397,14 +497,60 @@ Trang học chứng chỉ Claude (HTML/CSS/JS thuần, không build step) trong 
       'Tạo slash command / skill cho quy trình lặp lại',
       'Phân biệt khi nào dùng CLAUDE.md, hook, skill'
     ],
+    flow: {
+      title: 'Hook do harness chạy ở các mốc cố định, không phụ thuộc model',
+      steps: [
+        { kind: 'start', label: 'Phiên bắt đầu', note: 'Hook SessionStart: nạp trạng thái dự án' },
+        { kind: 'step', label: 'Người dùng gửi prompt', note: 'Hook UserPromptSubmit: chèn ngữ cảnh' },
+        { kind: 'step', label: 'Model chọn tool hoặc skill', detail: 'Skill khớp mô tả thì nạp nội dung' },
+        { kind: 'decision', label: 'Hook PreToolUse cho qua?', note: 'exit 2 → chặn, stderr gửi cho Claude' },
+        { kind: 'decision', label: 'Qua kiểm tra quyền?', note: 'deny → chặn; ask → hook PermissionRequest' },
+        { kind: 'step', label: 'Tool chạy', note: 'PostToolUse (lỗi: PostToolUseFailure)', loopTo: 2, loopLabel: 'còn việc' },
+        { kind: 'end', label: 'Claude trả lời xong', note: 'Hook Stop: thông báo, chạy test' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Team mobile Flutter: hook tự format, hết cảnh PR “sửa dấu cách”',
+        html: `<p><strong>Trước:</strong> CLAUDE.md đã ghi “luôn chạy dart format sau khi sửa file”, nhưng khoảng 1/5 số lần Claude quên, nhất là trong phiên dài. CI báo lỗi format và dev phải đẩy thêm commit “fix format”, trung bình 6 commit như vậy mỗi tuần.</p>
+<p><strong>Sau:</strong> team thêm hook <code>PostToolUse</code>. Hook do harness chạy nên không bao giờ “quên”:</p>
+<pre><code>"hooks": { "PostToolUse": [ { "matcher": "Edit|Write",
+  "hooks": [ { "type": "command",
+    "command": "jq -r '.tool_input.file_path' | xargs dart format" } ] } ] }</code></pre>
+<p>Số commit sửa format về 0. Team thêm một hook <code>PreToolUse</code> chặn sửa file trong <code>lib/generated/</code> (code sinh tự động): script trả exit code 2 kèm lời nhắn “hãy sửa file .proto rồi chạy build_runner”. Claude đọc lời nhắn đó và tự đi đúng hướng.</p>`
+      },
+      {
+        title: 'Agency marketing: skill “viết bài SEO” dùng chung cho 12 người',
+        html: `<p><strong>Bối cảnh:</strong> 12 content writer dùng Claude Code để soạn bài blog trong repo Hugo. Mỗi người có một prompt riêng lưu trong Notes, nên chất lượng mỗi người một kiểu: có bài thiếu meta description, có bài sai cấu trúc heading.</p>
+<p><strong>Giải pháp:</strong> team lead tạo skill <code>.claude/skills/seo-post/SKILL.md</code> với mô tả “Viết hoặc chỉnh bài blog chuẩn SEO. Dùng khi người dùng muốn viết bài, tối ưu từ khoá, thêm meta”. Kèm theo skill là checklist 10 mục và script kiểm tra độ dài tiêu đề.</p>
+<p><strong>Kết quả:</strong> chỉ phần mô tả skill nằm sẵn trong context, nội dung đầy đủ chỉ nạp khi có người nhờ viết bài, nên không tốn context cho các việc khác. Sau 2 tuần, 100% bài có meta description và tỉ lệ bài phải sửa sau review giảm từ khoảng 40% xuống 10%. Khi skill không được gọi tự động, lead viết lại mô tả cụ thể hơn, giống như viết mô tả tool.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Hook là lệnh shell do harness chạy ở mốc cố định: SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop…',
+        'Hook nhận dữ liệu sự kiện dạng JSON qua stdin; PreToolUse chạy trước kiểm tra quyền, thoát với exit code 2 thì tool bị chặn và stderr được gửi cho Claude.',
+        'Skill = .claude/skills/<tên>/SKILL.md; chỉ mô tả luôn nằm trong context, nội dung nạp khi cần.',
+        'Slash command tuỳ biến (.claude/commands/) là prompt dựng sẵn, nhận tham số qua $ARGUMENTS; skills là cách được khuyến nghị.',
+        'Chọn đúng công cụ: kiến thức luôn cần → CLAUDE.md; phải xảy ra 100% → hook; quy trình thỉnh thoảng → skill; hệ thống ngoài → MCP.'
+      ],
+      tips: [
+        '“Hook là máy, CLAUDE.md là lời dặn”: máy không quên, lời dặn có thể bị quên.',
+        'Exit 2 = “cấm cửa”: nhớ số 2 như “hai lần từ chối”.',
+        'Pre = trước cả kiểm tra quyền (chặn được), Post = sau (dọn dẹp, format).',
+        'Skill như cuốn sổ tay trên kệ: chỉ đọc gáy sách (mô tả), cần mới lấy xuống đọc.',
+        'Bẫy đề thi: “đảm bảo luôn luôn chạy” → hook, không phải skill hay CLAUDE.md.'
+      ]
+    },
     sections: [
       {
         h: '1. Hooks',
         html: `<p>Hook là lệnh shell mà <strong>harness</strong> chạy tại các thời điểm cố định – khác với chỉ dẫn trong CLAUDE.md (model có thể quên), hook luôn chạy.</p>
 <div class="table-wrap"><table>
 <tr><th>Sự kiện</th><th>Khi nào</th><th>Ví dụ</th></tr>
-<tr><td><code>PreToolUse</code></td><td>Trước khi chạy tool – có thể chặn</td><td>Chặn sửa file trong <code>migrations/</code></td></tr>
-<tr><td><code>PostToolUse</code></td><td>Sau khi tool chạy xong</td><td>Tự format file vừa sửa</td></tr>
+<tr><td><code>PreToolUse</code></td><td>Trước kiểm tra quyền thông thường và trước khi tool chạy – có thể chặn, sửa input hoặc tự quyết định quyền</td><td>Chặn sửa file trong <code>migrations/</code></td></tr>
+<tr><td><code>PermissionRequest</code></td><td>Khi cần hiện hộp thoại xin quyền</td><td>Tự duyệt/từ chối theo chính sách</td></tr>
+<tr><td><code>PostToolUse</code></td><td>Sau khi tool chạy xong (lỗi thì là <code>PostToolUseFailure</code>)</td><td>Tự format file vừa sửa</td></tr>
 <tr><td><code>UserPromptSubmit</code></td><td>Khi người dùng gửi prompt</td><td>Chèn thêm ngữ cảnh</td></tr>
 <tr><td><code>Stop</code></td><td>Khi Claude trả lời xong</td><td>Gửi thông báo, chạy test</td></tr>
 <tr><td><code>SessionStart</code></td><td>Khi bắt đầu phiên</td><td>Nạp trạng thái dự án</td></tr>
@@ -415,7 +561,7 @@ Trang học chứng chỉ Claude (HTML/CSS/JS thuần, không build step) trong 
         h: '2. Skills và slash command',
         html: `<ul>
 <li><strong>Skill</strong>: thư mục <code>.claude/skills/&lt;tên&gt;/SKILL.md</code> với frontmatter <code>name</code>, <code>description</code>. Claude tự nạp skill khi yêu cầu khớp mô tả, hoặc bạn gọi bằng <code>/&lt;tên&gt;</code>. Skill có thể kèm script, template.</li>
-<li><strong>Slash command</strong> tuỳ biến: file markdown trong <code>.claude/commands/</code> – prompt dựng sẵn, nhận tham số qua <code>$ARGUMENTS</code>.</li>
+<li><strong>Slash command</strong> tuỳ biến: file markdown trong <code>.claude/commands/</code> – prompt dựng sẵn, nhận tham số qua <code>$ARGUMENTS</code>. Skills là cách được khuyến nghị cho quy trình mới vì có thể kèm script và tự được gọi khi khớp mô tả.</li>
 <li>Chỉ phần mô tả của skill luôn nằm trong context; nội dung đầy đủ chỉ nạp khi dùng → tiết kiệm context (progressive disclosure).</li>
 </ul>
 <div class="callout tip"><strong>Chọn công cụ nào?</strong> Kiến thức luôn cần → CLAUDE.md. Việc phải xảy ra 100% → hook. Quy trình chuyên biệt dùng thỉnh thoảng → skill. Công cụ/dữ liệu bên ngoài → MCP.</div>`
@@ -601,6 +747,52 @@ Báo cáo dạng bảng: câu · vấn đề · đề xuất sửa. Không tự 
       'Chạy Claude Code không tương tác (claude -p)',
       'Tích hợp Claude Code vào GitHub Actions'
     ],
+    flow: {
+      title: 'Agent chính giao việc nặng cho subagent, chỉ nhận lại kết luận',
+      steps: [
+        { kind: 'start', label: 'Yêu cầu: review thay đổi' },
+        { kind: 'decision', label: 'Phải đọc nhiều file?', note: 'Không → agent chính tự làm' },
+        { kind: 'step', label: 'Gọi subagent code-reviewer', detail: 'Context riêng, tool giới hạn' },
+        { kind: 'step', label: 'Subagent đọc diff và file', detail: 'Read, Grep, Glob, git diff', note: 'Hook SubagentStop khi subagent xong' },
+        { kind: 'step', label: 'Trả báo cáo tóm tắt', note: 'Context chính vẫn gọn' },
+        { kind: 'step', label: 'CI: claude -p trong Actions', detail: '--allowedTools, --output-format json', note: 'API key lưu trong GitHub Secrets' },
+        { kind: 'end', label: 'Kết quả thành comment PR' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Dự án thương mại điện tử 1.200 file: subagent tìm nguyên nhân lỗi giỏ hàng',
+        html: `<p><strong>Trước:</strong> dev nhờ Claude “tìm vì sao giỏ hàng tính sai khuyến mãi”. Claude đọc lần lượt khoảng 60 file (service, rule khuyến mãi, test). Sau 40 phút context gần đầy, phải <code>/compact</code>, và Claude quên mất những gì đã loại trừ trước đó.</p>
+<p><strong>Sau:</strong> team tạo subagent <code>bug-investigator</code> trong <code>.claude/agents/</code>, chỉ có tool Read, Grep, Glob và <code>Bash(git log:*)</code>, với system prompt “trả về tối đa 10 dòng: nghi phạm, bằng chứng file:dòng, cách tái hiện”. Agent chính giao việc, subagent đọc hết 60 file trong context riêng rồi trả về đúng 8 dòng kết luận.</p>
+<p><strong>Kết quả:</strong> context chính chỉ tăng vài trăm token. Agent chính sửa lỗi ngay trong cùng phiên, tổng thời gian còn 15 phút. Subagent không có quyền Edit nên không thể “tiện tay” sửa lung tung.</p>`
+      },
+      {
+        title: 'Repo tài liệu nội bộ: Claude review mọi PR trong GitHub Actions',
+        html: `<p><strong>Bối cảnh:</strong> repo <code>ai-agent</code> (public) nhận PR thêm bài học từ nhiều người. Reviewer chính thường chỉ xem PR vào cuối tuần, nên lỗi nhỏ (sai cú pháp JS, thiếu lời giải) tồn đọng nhiều ngày.</p>
+<p><strong>Giải pháp:</strong> thêm workflow chạy Claude Code chế độ headless khi có PR:</p>
+<pre><code>claude -p "Review PR: kiểm tra schema bài học, cú pháp, độ chính xác" \
+  --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(node --check:*)" \
+  --output-format json &gt; review.json</code></pre>
+<p>API key lưu trong GitHub Secrets. Tool bị giới hạn chỉ đọc và kiểm tra cú pháp, nên workflow không thể push hay xoá gì.</p>
+<p><strong>Kết quả:</strong> mỗi PR có comment review trong khoảng 3 phút. Vì repo public nên runner <code>ubuntu-latest</code> chuẩn không tốn phút Actions. Reviewer người chỉ còn tập trung vào nội dung chuyên môn.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Subagent = một phiên Claude có context riêng, system prompt riêng và bộ tool giới hạn.',
+        'Lợi ích chính: cô lập context (đọc nhiều, trả về ít); ngoài ra còn chuyên môn hoá và chạy song song.',
+        'Định nghĩa subagent trong .claude/agents/<tên>.md với frontmatter name, description, tools (model tuỳ chọn).',
+        'Headless: claude -p "..." kèm --allowedTools và --output-format json để chạy trong script hoặc CI.',
+        'Trong CI: secret để trong GitHub Secrets, giới hạn tool, và để ý số phút Actions nếu repo private.'
+      ],
+      tips: [
+        'Subagent như “thực tập sinh đi thư viện”: đọc cả chồng sách, về chỉ nộp một trang tóm tắt.',
+        '-p = “print”: chạy một lần, in kết quả, thoát.',
+        'Subagent review chỉ cần “đọc – tìm – xem diff”, không cần “viết”.',
+        'Nhớ “3 lớp an toàn CI”: tool giới hạn, secret trong Secrets, output dạng JSON.',
+        'Bẫy đề thi: “context chính đầy vì phải đọc nhiều file” → subagent, không phải tăng max_tokens.'
+      ]
+    },
     sections: [
       {
         h: '1. Subagent',
@@ -787,6 +979,48 @@ câu quá dài. Trả danh sách file:dòng · vấn đề · đề xuất. Khô
       'Dùng managed settings để áp chính sách cho cả tổ chức',
       'Biết các tuỳ biến trải nghiệm: statusline và output style'
     ],
+    flow: {
+      title: 'Đóng gói một lần, cả team cài cùng một bộ cấu hình Claude Code',
+      steps: [
+        { kind: 'start', label: 'Team có skill, agent, hook tốt' },
+        { kind: 'step', label: 'Đóng gói thành plugin', detail: 'skills, agents, hooks, MCP', note: 'Kiểm tra bố cục ở tài liệu mới nhất' },
+        { kind: 'step', label: 'Đăng lên marketplace nội bộ', detail: 'Một repo git liệt kê các plugin' },
+        { kind: 'step', label: 'Dev cài bằng /plugin', note: 'Hoặc khai báo sẵn trong settings dự án' },
+        { kind: 'decision', label: 'Bắt buộc cả công ty?', note: 'Có → dùng managed settings của tổ chức' },
+        { kind: 'step', label: 'Phát hành phiên bản mới', loopTo: 1, loopLabel: 'cải tiến' },
+        { kind: 'end', label: 'Mọi người dùng cùng chuẩn' }
+      ]
+    },
+    realExamples: [
+      {
+        title: 'Công ty phần mềm 5 team: một plugin “chuẩn công ty” thay cho 5 bộ cấu hình',
+        html: `<p><strong>Trước:</strong> mỗi team tự copy-paste skill review code, subagent kiểm tra bảo mật và hook format từ repo này sang repo khác. Sau 3 tháng đã có 5 phiên bản khác nhau. Khi phát hiện hook bảo mật có lỗi, phải đi sửa ở 14 repo.</p>
+<p><strong>Sau:</strong> nhóm platform gom tất cả vào một plugin <code>company-standards</code> (skills, agents, hooks, cấu hình MCP) và đăng lên một marketplace nội bộ là một repo git. Dev chỉ cần cài một lần bằng <code>/plugin</code>. Các repo mới thì khai báo sẵn plugin trong <code>.claude/settings.json</code>, nên người clone về là được gợi ý cài ngay.</p>
+<p><strong>Kết quả:</strong> sửa lỗi hook chỉ cần phát hành một phiên bản plugin mới; các team cập nhật trong vòng 1 ngày thay vì 2 tuần. Tên khoá cấu hình cụ thể (danh sách marketplace, plugin bật sẵn) có thể thay đổi theo phiên bản, nên team luôn đối chiếu tài liệu mới nhất trước khi cập nhật.</p>`
+      },
+      {
+        title: 'Ngân hàng số: statusline và managed settings cho môi trường có kiểm soát',
+        html: `<p><strong>Yêu cầu:</strong> bộ phận an ninh yêu cầu mọi dev dùng Claude Code phải (1) chỉ dùng MCP server đã duyệt, (2) luôn biết mình đang ở repo và nhánh nào để tránh sửa nhầm nhánh production.</p>
+<p><strong>Giải pháp:</strong> IT phát hành managed settings cho toàn bộ máy dev. Trong đó khoá danh sách MCP được phép, deny các lệnh deploy trực tiếp, và cấu hình một <strong>statusline</strong> hiển thị tên repo, nhánh git và model đang dùng. Plugin nội bộ cung cấp thêm skill “quy trình thay đổi có phê duyệt”.</p>
+<p><strong>Kết quả:</strong> trong 6 tháng không còn sự cố chạy lệnh trên nhánh <code>release/*</code> nhầm lẫn (trước đó có 3 lần). Audit đạt vì chứng minh được cấu hình giống nhau trên mọi máy và người dùng không tự gỡ được. Đường dẫn file managed settings khác nhau theo hệ điều hành, nên cần kiểm tra tài liệu mới nhất khi triển khai.</p>`
+      }
+    ],
+    recap: {
+      summary: [
+        'Plugin đóng gói skills, subagents, hooks và cấu hình MCP để chia sẻ như một đơn vị.',
+        'Marketplace (thường là một repo git) là nơi liệt kê plugin; dev cài bằng /plugin.',
+        'Managed settings áp dụng bắt buộc cho cả tổ chức, người dùng không ghi đè được.',
+        'Statusline và output style là tuỳ biến giao diện và phong cách trả lời, không phải cơ chế bảo mật.',
+        'Chi tiết bố cục plugin và tên khoá cấu hình phụ thuộc phiên bản – luôn kiểm tra tài liệu mới nhất.'
+      ],
+      tips: [
+        'Plugin như “bộ đồ nghề đóng hộp”: mở hộp là có đủ skill, agent, hook, MCP.',
+        'Marketplace = “kệ hàng”, plugin = “món hàng”, /plugin = “giỏ mua”.',
+        'Muốn khuyến khích → plugin hoặc settings dự án; muốn bắt buộc → managed settings.',
+        'Sửa một chỗ, cả công ty hưởng: đó là lý do dùng plugin thay cho copy-paste.',
+        'Bẫy đề thi: statusline không chặn được gì – bảo mật nằm ở permissions và managed settings.'
+      ]
+    },
     sections: [
       {
         h: '1. Plugin là gì',

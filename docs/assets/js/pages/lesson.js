@@ -33,6 +33,14 @@
     <h1>${current.title}</h1>
     <div class="objectives"><h2>Mục tiêu bài học</h2><ul>${current.objectives.map((o) => `<li>${o}</li>`).join('')}</ul></div>`;
 
+  const LEGEND = `<div class="legend"><span class="l-start">Bắt đầu</span><span class="l-step">Bước xử lý</span>
+    <span class="l-dec">Điểm rẽ nhánh / kiểm tra</span><span class="l-end">Kết thúc</span><span class="l-loop">Vòng lặp</span></div>`;
+  if (current.flow) {
+    const sec = App.el('section', {}, '<h2>Sơ đồ: cách nó hoạt động</h2>');
+    const fig = App.renderFlow(current.flow);
+    if (fig) { sec.appendChild(fig); sec.insertAdjacentHTML('beforeend', LEGEND); root.appendChild(sec); }
+  }
+
   current.sections.forEach((s) => {
     const sec = App.el('section');
     sec.innerHTML = `<h2>${s.h}</h2>${s.html}`;
@@ -43,6 +51,24 @@
     const sec = App.el('section', {}, '<h2>Code mẫu</h2>');
     current.code.forEach((c) => sec.appendChild(App.codeBlock(c)));
     root.appendChild(sec);
+  }
+
+  if (current.realExamples && current.realExamples.length) {
+    const sec = App.el('section', {}, '<h2>Ví dụ thực tế</h2>');
+    current.realExamples.forEach((ex, i) => {
+      const card = App.el('div', { class: 'card example-card' });
+      card.innerHTML = `<span class="tag accent">Ví dụ ${i + 1}</span><h3>${ex.title}</h3>${ex.html}`;
+      sec.appendChild(card);
+    });
+    root.appendChild(sec);
+  }
+
+  if (current.recap) {
+    const box = App.el('section', { class: 'recap' });
+    box.innerHTML = `<h2>Tóm tắt &amp; mẹo nhớ</h2><div class="cols">
+      <div><h3>Ghi nhớ cốt lõi</h3><ul>${(current.recap.summary || []).map((x) => `<li>${x}</li>`).join('')}</ul></div>
+      <div><h3>Mẹo nhớ nhanh</h3><ul class="tips">${(current.recap.tips || []).map((x) => `<li>${x}</li>`).join('')}</ul></div></div>`;
+    root.appendChild(box);
   }
 
   if (current.exercises && current.exercises.length) {
