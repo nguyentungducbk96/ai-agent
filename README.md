@@ -2,6 +2,8 @@
 
 Trang học **lộ trình 6 tháng đạt chứng chỉ Claude Certified Architect – Foundations (CCAR-F)** cho người mới bắt đầu. Trang viết bằng HTML/CSS/JS thuần, không cần build.
 
+**Xem trang học:** https://nguyentungducbk96.github.io/ai-agent/
+
 ## Nội dung
 
 | Trang | Chức năng |
